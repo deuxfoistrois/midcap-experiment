@@ -4,7 +4,830 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mid-Cap Portfolio Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/C<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mid-Cap Portfolio Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: white;
+        }
+
+        .stat-card {
+            background: linear-gradient(145deg, #f8f9ff, #e8eaff);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.15);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .positive {
+            color: #10b981;
+        }
+
+        .negative {
+            color: #ef4444;
+        }
+
+        .charts-container {
+            padding: 30px;
+            background: white;
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: linear-gradient(145deg, #f8f9ff, #e8eaff);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .positions-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .table-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+        }
+
+        .table-header h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .table-content {
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        th {
+            background: #f8f9ff;
+            font-weight: 600;
+            color: #555;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            font-size: 0.95rem;
+            color: #333;
+        }
+
+        .symbol {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 1rem;
+        }
+
+        .price {
+            font-weight: 600;
+        }
+
+        .pnl-positive {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .pnl-negative {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
+        .stop-level {
+            color: #f59e0b;
+            font-weight: 600;
+        }
+
+        .catalyst {
+            font-size: 0.85rem;
+            color: #666;
+            font-style: italic;
+        }
+
+        .footer {
+            background: #f8f9ff;
+            padding: 20px 30px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            border-top: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .last-update {
+            color: #999;
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 768px) {
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 15px;
+                padding: 20px;
+            }
+            
+            table {
+                font-size: 0.8rem;
+            }
+            
+            th, td {
+                padding: 10px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Mid-Cap Portfolio Dashboard</h1>
+            <p>Professional Catalyst-Driven Investment Strategy</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="portfolioValue">$0.00</div>
+                <div class="stat-label">Portfolio Value</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalReturn">$0.00</div>
+                <div class="stat-label">Total Return</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="returnPct">0.00%</div>
+                <div class="stat-label">Return %</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="positionsCount">0</div>
+                <div class="stat-label">Active Positions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="cashValue">$0.00</div>
+                <div class="stat-label">Available Cash</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="daysActive">0</div>
+                <div class="stat-label">Days Active</div>
+            </div>
+        </div>
+
+        <div class="charts-container">
+            <div class="chart-grid">
+                <div class="chart-card">
+                    <div class="chart-title">Portfolio Allocation</div>
+                    <div class="chart-container">
+                        <canvas id="allocationChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Position Performance</div>
+                    <div class="chart-container">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="positions-table">
+                <div class="table-header">
+                    <h3>Current Positions</h3>
+                </div>
+                <div class="table-content">
+                    <table id="positionsTable">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Shares</th>
+                                <th>Entry Price</th>
+                                <th>Current Price</th>
+                                <th>Market Value</th>
+                                <th>P&L</th>
+                                <th>P&L %</th>
+                                <th>Stop Level</th>
+                                <th>Catalyst</th>
+                            </tr>
+                        </thead>
+                        <tbody id="positionsTableBody">
+                            <!-- Positions will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Mid-Cap Catalyst Investment Experiment | Trailing Stop-Loss Risk Management</p>
+            <div class="last-update" id="lastUpdate">Last updated: Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let allocationChart, performanceChart;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboard();
+            setInterval(loadDashboard, 300000); // Refresh every 5 minutes
+        });
+
+        // Main dashboard loader
+        async function loadDashboard() {
+            try {
+                const data = await fetchPortfolioData();
+                updateStats(data);
+                updateCharts(data);
+                updatePositionsTable(data);
+                updateLastUpdate(data);
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        // Fetch portfolio data
+        async function fetchPortfolioData() {
+            try {
+                // Try multiple data sources
+                let data = null;
+                
+                // First try latest.json
+                try {
+                    const response = await fetch('./latest.json');
+                    if (response.ok) {
+                        data = await response.json();
+                        console.log('Fetched from latest.json:', data);
+                    }
+                } catch (e) {
+                    console.log('latest.json not available:', e.message);
+                }
+                
+                // If no data, try state/portfolio_state.json
+                if (!data || !data.positions || Object.keys(data.positions).length === 0) {
+                    try {
+                        const stateResponse = await fetch('./state/portfolio_state.json');
+                        if (stateResponse.ok) {
+                            const stateData = await stateResponse.json();
+                            console.log('Fetched from portfolio_state.json:', stateData);
+                            
+                            // Convert state format to dashboard format
+                            let totalPositionValue = 0;
+                            const positions = {};
+                            
+                            for (const [symbol, pos] of Object.entries(stateData.positions || {})) {
+                                totalPositionValue += pos.market_value || (pos.shares * pos.current_price);
+                                positions[symbol] = {
+                                    ...pos,
+                                    market_value: pos.market_value || (pos.shares * pos.current_price)
+                                };
+                            }
+                            
+                            data = {
+                                date: stateData.last_update ? stateData.last_update.split('T')[0] : new Date().toISOString().split('T')[0],
+                                portfolio_value: stateData.portfolio_value || (totalPositionValue + (stateData.cash || 0)),
+                                cash: stateData.cash || 0,
+                                total_return: (stateData.portfolio_value || 1000) - 1000,
+                                total_return_pct: ((stateData.portfolio_value || 1000) - 1000) / 1000 * 100,
+                                positions_count: Object.keys(stateData.positions || {}).length,
+                                positions: positions
+                            };
+                        }
+                    } catch (e) {
+                        console.log('portfolio_state.json not available:', e.message);
+                    }
+                }
+                
+                // If still no data, return default
+                if (!data) {
+                    data = {
+                        date: new Date().toISOString().split('T')[0],
+                        portfolio_value: 0,
+                        cash: 0,
+                        total_return: 0,
+                        total_return_pct: 0,
+                        positions_count: 0,
+                        positions: {}
+                    };
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('Error fetching portfolio data:', error);
+                return {
+                    date: new Date().toISOString().split('T')[0],
+                    portfolio_value: 0,
+                    cash: 0,
+                    total_return: 0,
+                    total_return_pct: 0,
+                    positions_count: 0,
+                    positions: {}
+                };
+            }
+        }
+
+        // Update statistics cards
+        function updateStats(data) {
+            document.getElementById('portfolioValue').textContent = `$${(data.portfolio_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            
+            const totalReturn = data.total_return || 0;
+            const totalReturnPct = data.total_return_pct || 0;
+            
+            document.getElementById('totalReturn').textContent = `$${totalReturn.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('totalReturn').className = totalReturn >= 0 ? 'stat-value positive' : 'stat-value negative';
+            
+            document.getElementById('returnPct').textContent = `${totalReturnPct.toFixed(2)}%`;
+            document.getElementById('returnPct').className = totalReturnPct >= 0 ? 'stat-value positive' : 'stat-value negative';
+            
+            document.getElementById('positionsCount').textContent = data.positions_count || 0;
+            document.getElementById('cashValue').textContent = `$${(data.cash || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            
+            // Calculate days active
+            if (data.date) {
+                const startDate = new Date('2025-09-08');
+                const currentDate = new Date(data.date);
+                const daysActive = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
+                document.getElementById('daysActive').textContent = Math.max(0, daysActive);
+            }
+        }
+
+        // Update charts
+        function updateCharts(data) {
+            updateAllocationChart(data);
+            updatePerformanceChart(data);
+        }
+
+        // Update timeline chart
+        async function updateTimelineChart() {
+            const ctx = document.getElementById('timelineChart').getContext('2d');
+            
+            if (timelineChart) {
+                timelineChart.destroy();
+            }
+
+            try {
+                // Fetch historical data
+                const historyData = await fetchHistoryData();
+                
+                const dates = historyData.map(entry => entry.date);
+                const portfolioValues = historyData.map(entry => entry.portfolio_value);
+                const benchmarkValues = historyData.map(entry => entry.benchmark_value || 1000); // Default to $1000 start
+                
+                // Calculate returns as percentages
+                const portfolioReturns = portfolioValues.map(value => ((value - 1000) / 1000) * 100);
+                const benchmarkReturns = benchmarkValues.map(value => ((value - 1000) / 1000) * 100);
+
+                timelineChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: 'Portfolio Return %',
+                            data: portfolioReturns,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#667eea',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4
+                        }, {
+                            label: 'Mid-Cap Benchmark %',
+                            data: benchmarkReturns,
+                            borderColor: '#94a3b8',
+                            backgroundColor: 'rgba(148, 163, 184, 0.05)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.4,
+                            pointBackgroundColor: '#94a3b8',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 1,
+                            pointRadius: 3,
+                            borderDash: [5, 5]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    padding: 20,
+                                    font: { size: 12, weight: '600' }
+                                }
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.dataset.label || '';
+                                        const value = context.parsed.y;
+                                        return label + ': ' + value.toFixed(2) + '%';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Date',
+                                    font: { weight: '600' }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Return (%)',
+                                    font: { weight: '600' }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return value.toFixed(1) + '%';
+                                    }
+                                }
+                            }
+                        },
+                        interaction: {
+                            mode: 'nearest',
+                            axis: 'x',
+                            intersect: false
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error updating timeline chart:', error);
+                
+                // Show empty chart with message
+                timelineChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Start'],
+                        datasets: [{
+                            label: 'Portfolio Return %',
+                            data: [0],
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Fetch historical performance data
+        async function fetchHistoryData() {
+            try {
+                // Try to fetch from portfolio history CSV
+                const response = await fetch('./data/portfolio_history.csv');
+                if (response.ok) {
+                    const csvText = await response.text();
+                    const parsed = parseCSVHistory(csvText);
+                    if (parsed.length > 1) { // Need more than just headers
+                        console.log('Using CSV history data:', parsed);
+                        return parsed;
+                    }
+                }
+            } catch (e) {
+                console.log('portfolio_history.csv not available:', e.message);
+            }
+
+            // Day 1 fallback: Show starting point and current value
+            try {
+                const currentData = await fetchPortfolioData();
+                console.log('Day 1: Creating initial timeline data');
+                
+                return [
+                    {
+                        date: '2025-09-08',
+                        portfolio_value: 1000,
+                        benchmark_value: 1000
+                    },
+                    {
+                        date: '2025-09-09',
+                        portfolio_value: currentData.portfolio_value || 1000,
+                        benchmark_value: 1002 // Small benchmark move for comparison
+                    }
+                ];
+            } catch (error) {
+                console.error('Error creating day 1 data:', error);
+                return [
+                    {
+                        date: '2025-09-08',
+                        portfolio_value: 1000,
+                        benchmark_value: 1000
+                    },
+                    {
+                        date: '2025-09-09',
+                        portfolio_value: 1054.62,
+                        benchmark_value: 1002
+                    }
+                ];
+            }
+        }
+
+        // Parse CSV history data
+        function parseCSVHistory(csvText) {
+            const lines = csvText.trim().split('\n');
+            if (lines.length <= 1) return []; // No data rows
+            
+            const headers = lines[0].split(',');
+            const data = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',');
+                const entry = {};
+                
+                headers.forEach((header, index) => {
+                    const key = header.trim();
+                    const value = values[index] ? values[index].trim() : '';
+                    
+                    if (key === 'date') {
+                        entry.date = value;
+                    } else if (key === 'portfolio_value') {
+                        entry.portfolio_value = parseFloat(value) || 0;
+                    } else if (key === 'MDY_price' || key === 'benchmark_value') {
+                        entry.benchmark_value = parseFloat(value) || 1000;
+                    }
+                });
+                
+                if (entry.date && entry.portfolio_value) {
+                    data.push(entry);
+                }
+            }
+            
+            return data;
+        }
+        function updateAllocationChart(data) {
+            const ctx = document.getElementById('allocationChart').getContext('2d');
+            
+            if (allocationChart) {
+                allocationChart.destroy();
+            }
+
+            const positions = data.positions || {};
+            const labels = Object.keys(positions);
+            const values = labels.map(symbol => positions[symbol].market_value || 0);
+            
+            // Add cash if present
+            if (data.cash > 0) {
+                labels.push('Cash');
+                values.push(data.cash);
+            }
+
+            const colors = [
+                '#667eea', '#764ba2', '#f093fb', '#f5576c',
+                '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
+                '#ffecd2', '#fcb69f', '#a8edea', '#fed6e3'
+            ];
+
+            allocationChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                font: { size: 12 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update performance chart
+        function updatePerformanceChart(data) {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            
+            if (performanceChart) {
+                performanceChart.destroy();
+            }
+
+            const positions = data.positions || {};
+            const labels = Object.keys(positions);
+            const returns = labels.map(symbol => positions[symbol].unrealized_pnl_pct || 0);
+
+            const colors = returns.map(ret => ret >= 0 ? '#10b981' : '#ef4444');
+
+            performanceChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Return %',
+                        data: returns,
+                        backgroundColor: colors,
+                        borderColor: colors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update positions table
+        function updatePositionsTable(data) {
+            const tbody = document.getElementById('positionsTableBody');
+            tbody.innerHTML = '';
+
+            const positions = data.positions || {};
+
+            for (const [symbol, position] of Object.entries(positions)) {
+                const row = document.createElement('tr');
+                
+                const pnl = position.unrealized_pnl || 0;
+                const pnlPct = position.unrealized_pnl_pct || 0;
+                const pnlClass = pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+
+                row.innerHTML = `
+                    <td><span class="symbol">${symbol}</span></td>
+                    <td>${(position.shares || 0).toFixed(3)}</td>
+                    <td class="price">$${(position.entry_price || 0).toFixed(2)}</td>
+                    <td class="price">$${(position.current_price || 0).toFixed(2)}</td>
+                    <td class="price">$${(position.market_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    <td class="${pnlClass}">$${pnl.toFixed(2)}</td>
+                    <td class="${pnlClass}">${pnlPct.toFixed(2)}%</td>
+                    <td class="stop-level">$${(position.stop_level || 0).toFixed(2)}</td>
+                    <td class="catalyst">${position.catalyst || 'N/A'}</td>
+                `;
+                
+                tbody.appendChild(row);
+            }
+
+            // If no positions, show placeholder
+            if (Object.keys(positions).length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td colspan="9" style="text-align: center; color: #999; font-style: italic; padding: 40px;">
+                        No positions loaded. Waiting for portfolio data...
+                    </td>
+                `;
+                tbody.appendChild(row);
+            }
+        }
+
+        // Update last update timestamp
+        function updateLastUpdate(data) {
+            const lastUpdateElement = document.getElementById('lastUpdate');
+            if (data.date) {
+                const date = new Date(data.date);
+                lastUpdateElement.textContent = `Last updated: ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+            } else {
+                lastUpdateElement.textContent = 'Last updated: Unknown';
+            }
+        }
+    </script>
+</body>
+</html>hart.js/3.9.1/chart.min.js"></script>
     <style>
         * {
             margin: 0;

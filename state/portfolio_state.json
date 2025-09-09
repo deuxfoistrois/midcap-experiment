@@ -1,7 +1,56 @@
 {
-  "positions": {},
-  "cash": 1000.00,
+  "positions": {
+    "CRNX": {
+      "symbol": "CRNX",
+      "shares": 8,
+      "entry_price": 32.50,
+      "entry_date": "2025-09-08T00:00:00",
+      "cost_basis": 260.00,
+      "catalyst": "FDA PDUFA September 25",
+      "sector": "Healthcare",
+      "current_price": 32.50,
+      "market_value": 260.00,
+      "unrealized_pnl": 0,
+      "unrealized_pnl_pct": 0,
+      "highest_price": 32.50,
+      "stop_level": 28.18,
+      "stop_type": "initial"
+    },
+    "OTEX": {
+      "symbol": "OTEX", 
+      "shares": 8,
+      "entry_price": 30.49,
+      "entry_date": "2025-09-08T00:00:00",
+      "cost_basis": 243.92,
+      "catalyst": "Q1 FY2025 Earnings Oct 31",
+      "sector": "Technology",
+      "current_price": 30.49,
+      "market_value": 243.92,
+      "unrealized_pnl": 0,
+      "unrealized_pnl_pct": 0,
+      "highest_price": 30.49,
+      "stop_level": 26.53,
+      "stop_type": "initial"
+    },
+    "ZION": {
+      "symbol": "ZION",
+      "shares": 4,
+      "entry_price": 55.39,
+      "entry_date": "2025-09-08T00:00:00", 
+      "cost_basis": 221.56,
+      "catalyst": "Q3 Earnings + Fed Cuts",
+      "sector": "Financial",
+      "current_price": 55.39,
+      "market_value": 221.56,
+      "unrealized_pnl": 0,
+      "unrealized_pnl_pct": 0,
+      "highest_price": 55.39,
+      "stop_level": 48.19,
+      "stop_type": "initial"
+    }
+  },
+  "cash": 274.52,
   "portfolio_value": 1000.00,
-  "last_update": null,
+  "last_update": "2025-09-08T00:00:00",
   "experiment_start": "2025-09-08T00:00:00"
 }

@@ -55,7 +55,7 @@ midcap-experiment/
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/yourusername/midcap-experiment.git
+git clone https://github.com/deuxfoistrois/midcap-experiment.git
 cd midcap-experiment
 ```
 

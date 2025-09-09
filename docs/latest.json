@@ -1,0 +1,54 @@
+{
+  "date": "2025-09-09",
+  "portfolio_value": 24.52,
+  "cash": 24.52,
+  "total_return": -975.48,
+  "total_return_pct": -0.97548,
+  "positions_count": 4,
+  "positions": {
+    "CRNX": {
+      "shares": 8,
+      "entry_price": 32.5,
+      "current_price": 32.5,
+      "market_value": 260.0,
+      "unrealized_pnl": 0,
+      "unrealized_pnl_pct": 0,
+      "stop_level": 28.18,
+      "stop_type": "initial",
+      "days_held": 1
+    },
+    "STRL": {
+      "shares": 0.874,
+      "entry_price": 286.0,
+      "current_price": 286.0,
+      "market_value": 250.0,
+      "unrealized_pnl": 0,
+      "unrealized_pnl_pct": 0,
+      "stop_level": 248.82,
+      "stop_type": "initial",
+      "days_held": 1
+    },
+    "OTEX": {
+      "shares": 8,
+      "entry_price": 30.49,
+      "current_price": 30.49,
+      "market_value": 243.92,
+      "unrealized_pnl": 0,
+      "unrealized_pnl_pct": 0,
+      "stop_level": 26.53,
+      "stop_type": "initial",
+      "days_held": 1
+    },
+    "ZION": {
+      "shares": 4,
+      "entry_price": 55.39,
+      "current_price": 55.39,
+      "market_value": 221.56,
+      "unrealized_pnl": 0,
+      "unrealized_pnl_pct": 0,
+      "stop_level": 48.19,
+      "stop_type": "initial",
+      "days_held": 1
+    }
+  }
+}

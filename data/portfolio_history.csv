@@ -1,1 +1,2 @@
-date,portfolio_value,cash,positions_value,total_invested,total_return,total_return_pct,positions_count,MDY_price,SPY_price,IWM_price
+date,portfolio_value,cash,positions_value,total_invested,total_return,total_return_pct,positions_count,MDY_price,SPY_price,IWM_price,QQQ_price
+2025-09-09,24.52,24.52,0.0,999.9639999999999,-975.48,-0.97548,4,603.0399780273438,648.8300170898438,238.25,578.8699951171875

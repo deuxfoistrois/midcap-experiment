@@ -1,0 +1,82 @@
+{
+  "timestamp": "2025-09-09T02:02:01.172104",
+  "performance": {
+    "current_value": 24.52,
+    "cash": 24.52,
+    "total_return": -975.48,
+    "total_return_pct": -97.548,
+    "daily_change": 0,
+    "daily_change_pct": 0,
+    "positions_count": 4,
+    "days_active": 0,
+    "best_day": 0,
+    "worst_day": 0,
+    "volatility": 0
+  },
+  "benchmark_comparison": {},
+  "positions": {
+    "CRNX": {
+      "shares": 8,
+      "entry_price": 32.5,
+      "current_price": 32.5,
+      "market_value": 260.0,
+      "cost_basis": 260.0,
+      "pnl": 0.0,
+      "pnl_pct": 0.0,
+      "stop_level": 28.18,
+      "stop_distance_pct": 13.292307692307691,
+      "catalyst": "FDA PDUFA September 25",
+      "sector": "Healthcare",
+      "days_held": 1
+    },
+    "STRL": {
+      "shares": 0.874,
+      "entry_price": 286.0,
+      "current_price": 286.0,
+      "market_value": 249.964,
+      "cost_basis": 249.964,
+      "pnl": 0.0,
+      "pnl_pct": 0.0,
+      "stop_level": 248.82,
+      "stop_distance_pct": 13.000000000000004,
+      "catalyst": "Q3 Earnings October",
+      "sector": "Industrial",
+      "days_held": 1
+    },
+    "OTEX": {
+      "shares": 8,
+      "entry_price": 30.49,
+      "current_price": 30.49,
+      "market_value": 243.92,
+      "cost_basis": 243.92,
+      "pnl": 0.0,
+      "pnl_pct": 0.0,
+      "stop_level": 26.53,
+      "stop_distance_pct": 12.987864873729082,
+      "catalyst": "Q1 FY2025 Earnings Oct 31",
+      "sector": "Technology",
+      "days_held": 1
+    },
+    "ZION": {
+      "shares": 4,
+      "entry_price": 55.39,
+      "current_price": 55.39,
+      "market_value": 221.56,
+      "cost_basis": 221.56,
+      "pnl": 0.0,
+      "pnl_pct": 0.0,
+      "stop_level": 48.19,
+      "stop_distance_pct": 12.998736233977256,
+      "catalyst": "Q3 Earnings + Fed Cuts",
+      "sector": "Financial",
+      "days_held": 1
+    }
+  },
+  "summary": {
+    "experiment_day": 0,
+    "total_return_pct": -97.548,
+    "daily_change_pct": 0,
+    "positions_count": 4,
+    "cash_pct": 100.0
+  }
+}

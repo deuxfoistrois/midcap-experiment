@@ -1,0 +1,74 @@
+{
+  "timestamp": "2025-09-09T02:02:00.844957",
+  "portfolio_metrics": {
+    "total_positions": 4,
+    "positions_with_stops": 4,
+    "total_at_risk": 127.53532,
+    "weighted_avg_stop_distance": 0.13074588920326402,
+    "trailing_stops_active": 0,
+    "initial_stops_active": 4,
+    "closest_stop_distance": 0.12987864873729082,
+    "furthest_stop_distance": 0.13292307692307692,
+    "portfolio_risk_pct": 13.074109156517816
+  },
+  "position_analysis": {
+    "CRNX": {
+      "current_price": 32.5,
+      "entry_price": 32.5,
+      "stop_level": 28.18,
+      "stop_type": "initial",
+      "gain_from_entry_pct": 0.0,
+      "distance_to_stop_pct": 13.292307692307691,
+      "distance_to_stop_dollars": 4.32,
+      "highest_price": 32.5,
+      "max_gain_pct": 0.0,
+      "trailing_activated": false,
+      "stop_protection_pct": -13.292307692307691,
+      "risk_level": "LOW"
+    },
+    "STRL": {
+      "current_price": 286.0,
+      "entry_price": 286.0,
+      "stop_level": 248.82,
+      "stop_type": "initial",
+      "gain_from_entry_pct": 0.0,
+      "distance_to_stop_pct": 13.000000000000004,
+      "distance_to_stop_dollars": 37.18000000000001,
+      "highest_price": 286.0,
+      "max_gain_pct": 0.0,
+      "trailing_activated": false,
+      "stop_protection_pct": -13.000000000000004,
+      "risk_level": "LOW"
+    },
+    "OTEX": {
+      "current_price": 30.49,
+      "entry_price": 30.49,
+      "stop_level": 26.53,
+      "stop_type": "initial",
+      "gain_from_entry_pct": 0.0,
+      "distance_to_stop_pct": 12.987864873729082,
+      "distance_to_stop_dollars": 3.9599999999999973,
+      "highest_price": 30.49,
+      "max_gain_pct": 0.0,
+      "trailing_activated": false,
+      "stop_protection_pct": -12.987864873729082,
+      "risk_level": "LOW"
+    },
+    "ZION": {
+      "current_price": 55.39,
+      "entry_price": 55.39,
+      "stop_level": 48.19,
+      "stop_type": "initial",
+      "gain_from_entry_pct": 0.0,
+      "distance_to_stop_pct": 12.998736233977256,
+      "distance_to_stop_dollars": 7.200000000000003,
+      "highest_price": 55.39,
+      "max_gain_pct": 0.0,
+      "trailing_activated": false,
+      "stop_protection_pct": -12.998736233977256,
+      "risk_level": "LOW"
+    }
+  },
+  "alerts": [],
+  "historical_performance": {}
+}

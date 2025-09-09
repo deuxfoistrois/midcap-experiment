@@ -5,7 +5,7 @@
 This repository tracks a concentrated mid-cap investment strategy focused on catalyst-driven positions with advanced trailing stop-loss management.
 
 ## 📊 Live Dashboard
-🔗 **[View Live Dashboard](https://yourusername.github.io/midcap-experiment)**
+🔗 **[View Live Dashboard](https://deuxfoistrois.github.io/midcap-experiment)**
 
 ## 🎯 Experiment Overview
 

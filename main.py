@@ -289,14 +289,22 @@ class MidCapPortfolioTracker:
             # Check if today's record already exists
             df_existing['date'] = pd.to_datetime(df_existing['date']).dt.date
             today = datetime.now().date()
-            if today not in df_existing['date'].values:
+            
+            if today in df_existing['date'].values:
+                # Remove existing today's record and append new one
+                df_existing = df_existing[df_existing['date'] != today]
                 df_combined = pd.concat([df_existing, df_new], ignore_index=True)
+                logger.info("Updated existing daily record")
             else:
-                # Update today's record
-                df_existing.loc[df_existing['date'] == today] = daily_record
-                df_combined = df_existing
+                # Append new record
+                df_combined = pd.concat([df_existing, df_new], ignore_index=True)
+                logger.info("Added new daily record")
         else:
             df_combined = df_new
+            logger.info("Created new portfolio history file")
+        
+        # Sort by date to ensure chronological order
+        df_combined = df_combined.sort_values('date').reset_index(drop=True)
         
         df_combined.to_csv(self.portfolio_history_file, index=False)
         

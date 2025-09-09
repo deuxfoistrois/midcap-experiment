@@ -1,10 +1,10 @@
 {
-  "timestamp": "2025-09-09T02:02:01.172104",
+  "timestamp": "2025-09-09T14:08:42.725595",
   "performance": {
-    "current_value": 24.52,
+    "current_value": 1054.6245399999998,
     "cash": 24.52,
-    "total_return": -975.48,
-    "total_return_pct": -97.548,
+    "total_return": 54.6245399999998,
+    "total_return_pct": 5.46245399999998,
     "daily_change": 0,
     "daily_change_pct": 0,
     "positions_count": 4,
@@ -18,13 +18,13 @@
     "CRNX": {
       "shares": 8,
       "entry_price": 32.5,
-      "current_price": 32.5,
-      "market_value": 260.0,
+      "current_price": 35.14,
+      "market_value": 281.12,
       "cost_basis": 260.0,
-      "pnl": 0.0,
-      "pnl_pct": 0.0,
-      "stop_level": 28.18,
-      "stop_distance_pct": 13.292307692307691,
+      "pnl": 21.120000000000005,
+      "pnl_pct": 8.123076923076924,
+      "stop_level": 30.9232,
+      "stop_distance_pct": 11.999999999999998,
       "catalyst": "FDA PDUFA September 25",
       "sector": "Healthcare",
       "days_held": 1
@@ -32,13 +32,13 @@
     "STRL": {
       "shares": 0.874,
       "entry_price": 286.0,
-      "current_price": 286.0,
-      "market_value": 249.964,
+      "current_price": 286.71,
+      "market_value": 250.58453999999998,
       "cost_basis": 249.964,
-      "pnl": 0.0,
-      "pnl_pct": 0.0,
+      "pnl": 0.6205399999999821,
+      "pnl_pct": 0.2482517482517411,
       "stop_level": 248.82,
-      "stop_distance_pct": 13.000000000000004,
+      "stop_distance_pct": 13.215444177043,
       "catalyst": "Q3 Earnings October",
       "sector": "Industrial",
       "days_held": 1
@@ -46,13 +46,13 @@
     "OTEX": {
       "shares": 8,
       "entry_price": 30.49,
-      "current_price": 30.49,
-      "market_value": 243.92,
+      "current_price": 33.79,
+      "market_value": 270.32,
       "cost_basis": 243.92,
-      "pnl": 0.0,
-      "pnl_pct": 0.0,
-      "stop_level": 26.53,
-      "stop_distance_pct": 12.987864873729082,
+      "pnl": 26.400000000000006,
+      "pnl_pct": 10.823220728107579,
+      "stop_level": 29.7352,
+      "stop_distance_pct": 12.000000000000002,
       "catalyst": "Q1 FY2025 Earnings Oct 31",
       "sector": "Technology",
       "days_held": 1
@@ -60,13 +60,13 @@
     "ZION": {
       "shares": 4,
       "entry_price": 55.39,
-      "current_price": 55.39,
-      "market_value": 221.56,
+      "current_price": 57.02,
+      "market_value": 228.08,
       "cost_basis": 221.56,
-      "pnl": 0.0,
-      "pnl_pct": 0.0,
-      "stop_level": 48.19,
-      "stop_distance_pct": 12.998736233977256,
+      "pnl": 6.52000000000001,
+      "pnl_pct": 2.9427694529698547,
+      "stop_level": 48.1893,
+      "stop_distance_pct": 15.487022097509644,
       "catalyst": "Q3 Earnings + Fed Cuts",
       "sector": "Financial",
       "days_held": 1
@@ -74,9 +74,9 @@
   },
   "summary": {
     "experiment_day": 0,
-    "total_return_pct": -97.548,
+    "total_return_pct": 5.46245399999998,
     "daily_change_pct": 0,
     "positions_count": 4,
-    "cash_pct": 100.0
+    "cash_pct": 2.3249980509651333
   }
 }

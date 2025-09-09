@@ -35,7 +35,7 @@
       "max_sector_exposure": 0.50
     }
   },
-  "symbols": [],
+  "symbols": ["CRNX", "STRL", "OTEX", "ZION"],
   "api": {
     "alphavantage_key": "ALPHAVANTAGE_API_KEY",
     "update_schedule": "20:20",

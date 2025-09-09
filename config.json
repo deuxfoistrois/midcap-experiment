@@ -1,0 +1,62 @@
+{
+  "portfolio": {
+    "experiment_name": "Mid-Cap Catalyst Experiment",
+    "start_date": "2025-09-08",
+    "duration_days": 30,
+    "initial_capital": 1000.00,
+    "strategy": "catalyst-driven-midcap",
+    "description": "30-Day Mid-Cap Trading Experiment with Trailing Stop-Loss",
+    "target_returns": {
+      "bull_case": 0.35,
+      "base_case": 0.20,
+      "bear_case": 0.05
+    }
+  },
+  "positions": {
+    "max_positions": 4,
+    "position_sizing": "equal_weight",
+    "min_position_size": 200,
+    "max_position_size": 300,
+    "market_cap_range": {
+      "min": 2000000000,
+      "max": 10000000000
+    }
+  },
+  "risk_management": {
+    "stop_loss": {
+      "type": "trailing",
+      "initial_stop_pct": 0.13,
+      "trailing_stop_pct": 0.12,
+      "activation_gain_pct": 0.05,
+      "grace_period_days": 1
+    },
+    "position_limits": {
+      "max_single_position": 0.30,
+      "max_sector_exposure": 0.50
+    }
+  },
+  "symbols": [],
+  "api": {
+    "alphavantage_key": "ALPHAVANTAGE_API_KEY",
+    "update_schedule": "20:20",
+    "market_hours": {
+      "open": "09:30",
+      "close": "16:00",
+      "timezone": "US/Eastern"
+    }
+  },
+  "benchmarks": {
+    "primary": "MDY",
+    "secondary": ["SPY", "IWM", "QQQ"],
+    "sector_etfs": ["XLF", "XLK", "XLV", "XLI"]
+  },
+  "reporting": {
+    "daily_reports": true,
+    "excel_exports": true,
+    "dashboard_update": true,
+    "alerts": {
+      "stop_loss_triggered": true,
+      "significant_moves": 0.05
+    }
+  }
+}

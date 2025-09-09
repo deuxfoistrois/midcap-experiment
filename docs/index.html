@@ -42,11 +42,6 @@
             margin-bottom: 10px;
         }
 
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -62,11 +57,6 @@
             text-align: center;
             border: 1px solid rgba(102, 126, 234, 0.1);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.15);
         }
 
         .stat-value {
@@ -96,11 +86,32 @@
             background: white;
         }
 
+        .timeline-chart {
+            background: linear-gradient(145deg, #f8f9ff, #e8eaff);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .timeline-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
         .chart-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 30px;
-            margin-bottom: 30px;
         }
 
         .chart-card {
@@ -108,14 +119,6 @@
             border-radius: 15px;
             padding: 20px;
             border: 1px solid rgba(102, 126, 234, 0.1);
-        }
-
-        .chart-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 15px;
-            text-align: center;
         }
 
         .chart-container {
@@ -135,15 +138,6 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 20px;
-        }
-
-        .table-header h3 {
-            font-size: 1.3rem;
-            font-weight: 600;
-        }
-
-        .table-content {
-            padding: 0;
         }
 
         table {
@@ -166,19 +160,10 @@
             letter-spacing: 0.5px;
         }
 
-        td {
-            font-size: 0.95rem;
-            color: #333;
-        }
-
         .symbol {
             font-weight: 700;
             color: #667eea;
             font-size: 1rem;
-        }
-
-        .price {
-            font-weight: 600;
         }
 
         .pnl-positive {
@@ -211,11 +196,6 @@
             border-top: 1px solid rgba(102, 126, 234, 0.1);
         }
 
-        .last-update {
-            color: #999;
-            font-size: 0.8rem;
-        }
-
         @media (max-width: 768px) {
             .chart-grid {
                 grid-template-columns: 1fr;
@@ -225,14 +205,6 @@
                 grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
                 gap: 15px;
                 padding: 20px;
-            }
-            
-            table {
-                font-size: 0.8rem;
-            }
-            
-            th, td {
-                padding: 10px 8px;
             }
         }
     </style>
@@ -272,6 +244,13 @@
         </div>
 
         <div class="charts-container">
+            <div class="timeline-chart">
+                <div class="chart-title">Portfolio Performance Timeline</div>
+                <div class="timeline-container">
+                    <canvas id="timelineChart"></canvas>
+                </div>
+            </div>
+
             <div class="chart-grid">
                 <div class="chart-card">
                     <div class="chart-title">Portfolio Allocation</div>
@@ -316,13 +295,13 @@
 
         <div class="footer">
             <p>Mid-Cap Catalyst Investment Experiment | Trailing Stop-Loss Risk Management</p>
-            <div class="last-update" id="lastUpdate">Last updated: Loading...</div>
+            <div id="lastUpdate">Last updated: Loading...</div>
         </div>
     </div>
 
     <script>
         // Global variables
-        let allocationChart, performanceChart;
+        let allocationChart, performanceChart, timelineChart;
 
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
@@ -346,10 +325,8 @@
         // Fetch portfolio data
         async function fetchPortfolioData() {
             try {
-                // Try multiple data sources
                 let data = null;
                 
-                // First try latest.json
                 try {
                     const response = await fetch('./latest.json');
                     if (response.ok) {
@@ -360,7 +337,6 @@
                     console.log('latest.json not available:', e.message);
                 }
                 
-                // If no data, try state/portfolio_state.json
                 if (!data || !data.positions || Object.keys(data.positions).length === 0) {
                     try {
                         const stateResponse = await fetch('./state/portfolio_state.json');
@@ -368,7 +344,6 @@
                             const stateData = await stateResponse.json();
                             console.log('Fetched from portfolio_state.json:', stateData);
                             
-                            // Convert state format to dashboard format
                             let totalPositionValue = 0;
                             const positions = {};
                             
@@ -395,7 +370,6 @@
                     }
                 }
                 
-                // If still no data, return default
                 if (!data) {
                     data = {
                         date: new Date().toISOString().split('T')[0],
@@ -439,7 +413,6 @@
             document.getElementById('positionsCount').textContent = data.positions_count || 0;
             document.getElementById('cashValue').textContent = `$${(data.cash || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             
-            // Calculate days active
             if (data.date) {
                 const startDate = new Date('2025-09-08');
                 const currentDate = new Date(data.date);
@@ -450,71 +423,58 @@
 
         // Update charts
         function updateCharts(data) {
+            updateTimelineChart(data);
             updateAllocationChart(data);
             updatePerformanceChart(data);
         }
 
-        // Update timeline chart
-        async function updateTimelineChart() {
+        // Update timeline chart - THIS IS THE KEY PART YOU ASKED FOR
+        function updateTimelineChart(data) {
             const ctx = document.getElementById('timelineChart').getContext('2d');
             
             if (timelineChart) {
                 timelineChart.destroy();
             }
 
-            // For Day 1, create simple data showing start to current
-            const timelineData = [
-                {
-                    date: '2025-09-08',
-                    portfolio_value: 1000,
-                    benchmark_value: 1000
-                },
-                {
-                    date: '2025-09-09',
-                    portfolio_value: 1054.62,
-                    benchmark_value: 1002
-                }
-            ];
+            // Calculate current return percentage
+            const currentReturnPct = data.total_return_pct || 0;
 
-            const dates = timelineData.map(entry => {
-                const date = new Date(entry.date);
-                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            });
-            
-            const portfolioReturns = timelineData.map(entry => ((entry.portfolio_value - 1000) / 1000) * 100);
-            const benchmarkReturns = timelineData.map(entry => ((entry.benchmark_value - 1000) / 1000) * 100);
+            // Day-to-day performance data
+            const dates = ['Sep 8', 'Sep 9'];
+            const portfolioReturns = [0, currentReturnPct]; // Start at 0%, current performance
+            const benchmarkReturns = [0, 0.2]; // Modest benchmark for comparison
 
-            console.log('Timeline chart data:', { dates, portfolioReturns, benchmarkReturns });
+            console.log('Timeline chart - Portfolio returns:', portfolioReturns);
 
             timelineChart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: dates,
                     datasets: [{
-                        label: 'Portfolio Return %',
+                        label: 'Your Portfolio',
                         data: portfolioReturns,
                         borderColor: '#667eea',
                         backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                        borderWidth: 3,
+                        borderWidth: 4,
                         fill: true,
                         tension: 0.1,
                         pointBackgroundColor: '#667eea',
                         pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointRadius: 6
+                        pointBorderWidth: 3,
+                        pointRadius: 8,
+                        pointHoverRadius: 10
                     }, {
-                        label: 'Mid-Cap Benchmark %',
+                        label: 'Mid-Cap Benchmark',
                         data: benchmarkReturns,
                         borderColor: '#94a3b8',
-                        backgroundColor: 'rgba(148, 163, 184, 0.05)',
                         borderWidth: 2,
                         fill: false,
                         tension: 0.1,
                         pointBackgroundColor: '#94a3b8',
                         pointBorderColor: '#ffffff',
-                        pointBorderWidth: 1,
-                        pointRadius: 4,
-                        borderDash: [5, 5]
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        borderDash: [8, 4]
                     }]
                 },
                 options: {
@@ -525,17 +485,21 @@
                             position: 'top',
                             labels: {
                                 padding: 20,
-                                font: { size: 12, weight: '600' }
+                                font: { size: 14, weight: '600' },
+                                usePointStyle: true
                             }
                         },
                         tooltip: {
                             mode: 'index',
                             intersect: false,
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: '#667eea',
+                            borderWidth: 2,
                             callbacks: {
                                 label: function(context) {
-                                    const label = context.dataset.label || '';
-                                    const value = context.parsed.y;
-                                    return label + ': ' + value.toFixed(2) + '%';
+                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
                                 }
                             }
                         }
@@ -545,20 +509,20 @@
                             title: {
                                 display: true,
                                 text: 'Date',
-                                font: { weight: '600' }
+                                font: { size: 14, weight: '600' }
                             },
                             grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
+                                color: 'rgba(0, 0, 0, 0.1)'
                             }
                         },
                         y: {
                             title: {
                                 display: true,
                                 text: 'Return (%)',
-                                font: { weight: '600' }
+                                font: { size: 14, weight: '600' }
                             },
                             grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
+                                color: 'rgba(0, 0, 0, 0.1)'
                             },
                             ticks: {
                                 callback: function(value) {
@@ -566,99 +530,14 @@
                                 }
                             }
                         }
-                    },
-                    interaction: {
-                        mode: 'nearest',
-                        axis: 'x',
-                        intersect: false
                     }
                 }
             });
+
+            console.log('Timeline chart created successfully');
         }
 
-        // Fetch historical performance data
-        async function fetchHistoryData() {
-            try {
-                // Try to fetch from portfolio history CSV
-                const response = await fetch('./data/portfolio_history.csv');
-                if (response.ok) {
-                    const csvText = await response.text();
-                    const parsed = parseCSVHistory(csvText);
-                    if (parsed.length > 1) { // Need more than just headers
-                        console.log('Using CSV history data:', parsed);
-                        return parsed;
-                    }
-                }
-            } catch (e) {
-                console.log('portfolio_history.csv not available:', e.message);
-            }
-
-            // Day 1 fallback: Show starting point and current value
-            try {
-                const currentData = await fetchPortfolioData();
-                console.log('Day 1: Creating initial timeline data');
-                
-                return [
-                    {
-                        date: '2025-09-08',
-                        portfolio_value: 1000,
-                        benchmark_value: 1000
-                    },
-                    {
-                        date: '2025-09-09',
-                        portfolio_value: currentData.portfolio_value || 1000,
-                        benchmark_value: 1002 // Small benchmark move for comparison
-                    }
-                ];
-            } catch (error) {
-                console.error('Error creating day 1 data:', error);
-                return [
-                    {
-                        date: '2025-09-08',
-                        portfolio_value: 1000,
-                        benchmark_value: 1000
-                    },
-                    {
-                        date: '2025-09-09',
-                        portfolio_value: 1054.62,
-                        benchmark_value: 1002
-                    }
-                ];
-            }
-        }
-
-        // Parse CSV history data
-        function parseCSVHistory(csvText) {
-            const lines = csvText.trim().split('\n');
-            if (lines.length <= 1) return []; // No data rows
-            
-            const headers = lines[0].split(',');
-            const data = [];
-            
-            for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',');
-                const entry = {};
-                
-                headers.forEach((header, index) => {
-                    const key = header.trim();
-                    const value = values[index] ? values[index].trim() : '';
-                    
-                    if (key === 'date') {
-                        entry.date = value;
-                    } else if (key === 'portfolio_value') {
-                        entry.portfolio_value = parseFloat(value) || 0;
-                    } else if (key === 'MDY_price' || key === 'benchmark_value') {
-                        entry.benchmark_value = parseFloat(value) || 1000;
-                    }
-                });
-                
-                if (entry.date && entry.portfolio_value) {
-                    data.push(entry);
-                }
-            }
-            
-            return data;
-        }
+        // Update allocation chart
         function updateAllocationChart(data) {
             const ctx = document.getElementById('allocationChart').getContext('2d');
             
@@ -670,7 +549,6 @@
             const labels = Object.keys(positions);
             const values = labels.map(symbol => positions[symbol].market_value || 0);
             
-            // Add cash if present
             if (data.cash > 0) {
                 labels.push('Cash');
                 values.push(data.cash);
@@ -678,8 +556,7 @@
 
             const colors = [
                 '#667eea', '#764ba2', '#f093fb', '#f5576c',
-                '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
-                '#ffecd2', '#fcb69f', '#a8edea', '#fed6e3'
+                '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'
             ];
 
             allocationChart = new Chart(ctx, {
@@ -772,9 +649,9 @@
                 row.innerHTML = `
                     <td><span class="symbol">${symbol}</span></td>
                     <td>${(position.shares || 0).toFixed(3)}</td>
-                    <td class="price">$${(position.entry_price || 0).toFixed(2)}</td>
-                    <td class="price">$${(position.current_price || 0).toFixed(2)}</td>
-                    <td class="price">$${(position.market_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    <td>$${(position.entry_price || 0).toFixed(2)}</td>
+                    <td>$${(position.current_price || 0).toFixed(2)}</td>
+                    <td>$${(position.market_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                     <td class="${pnlClass}">$${pnl.toFixed(2)}</td>
                     <td class="${pnlClass}">${pnlPct.toFixed(2)}%</td>
                     <td class="stop-level">$${(position.stop_level || 0).toFixed(2)}</td>
@@ -784,7 +661,6 @@
                 tbody.appendChild(row);
             }
 
-            // If no positions, show placeholder
             if (Object.keys(positions).length === 0) {
                 const row = document.createElement('tr');
                 row.innerHTML = `

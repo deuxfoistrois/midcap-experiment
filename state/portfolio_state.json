@@ -7,7 +7,7 @@
       "entry_date": "2025-09-08T00:00:00",
       "cost_basis": 260.00,
       "catalyst": "FDA PDUFA September 25",
-      "sector": "Healthcare",
+      "sector": "Healthcare", 
       "current_price": 32.50,
       "market_value": 260.00,
       "unrealized_pnl": 0,
@@ -16,8 +16,24 @@
       "stop_level": 28.18,
       "stop_type": "initial"
     },
+    "STRL": {
+      "symbol": "STRL",
+      "shares": 0.874,
+      "entry_price": 286.00,
+      "entry_date": "2025-09-08T00:00:00",
+      "cost_basis": 250.00,
+      "catalyst": "Q3 Earnings October",
+      "sector": "Industrial",
+      "current_price": 286.00,
+      "market_value": 250.00,
+      "unrealized_pnl": 0,
+      "unrealized_pnl_pct": 0,
+      "highest_price": 286.00,
+      "stop_level": 248.82,
+      "stop_type": "initial"
+    },
     "OTEX": {
-      "symbol": "OTEX", 
+      "symbol": "OTEX",
       "shares": 8,
       "entry_price": 30.49,
       "entry_date": "2025-09-08T00:00:00",
@@ -36,7 +52,7 @@
       "symbol": "ZION",
       "shares": 4,
       "entry_price": 55.39,
-      "entry_date": "2025-09-08T00:00:00", 
+      "entry_date": "2025-09-08T00:00:00",
       "cost_basis": 221.56,
       "catalyst": "Q3 Earnings + Fed Cuts",
       "sector": "Financial",
@@ -49,7 +65,7 @@
       "stop_type": "initial"
     }
   },
-  "cash": 274.52,
+  "cash": 24.52,
   "portfolio_value": 1000.00,
   "last_update": "2025-09-08T00:00:00",
   "experiment_start": "2025-09-08T00:00:00"

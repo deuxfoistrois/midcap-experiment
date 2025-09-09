@@ -462,131 +462,118 @@
                 timelineChart.destroy();
             }
 
-            try {
-                // Fetch historical data
-                const historyData = await fetchHistoryData();
-                
-                const dates = historyData.map(entry => entry.date);
-                const portfolioValues = historyData.map(entry => entry.portfolio_value);
-                const benchmarkValues = historyData.map(entry => entry.benchmark_value || 1000); // Default to $1000 start
-                
-                // Calculate returns as percentages
-                const portfolioReturns = portfolioValues.map(value => ((value - 1000) / 1000) * 100);
-                const benchmarkReturns = benchmarkValues.map(value => ((value - 1000) / 1000) * 100);
+            // For Day 1, create simple data showing start to current
+            const timelineData = [
+                {
+                    date: '2025-09-08',
+                    portfolio_value: 1000,
+                    benchmark_value: 1000
+                },
+                {
+                    date: '2025-09-09',
+                    portfolio_value: 1054.62,
+                    benchmark_value: 1002
+                }
+            ];
 
-                timelineChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: dates,
-                        datasets: [{
-                            label: 'Portfolio Return %',
-                            data: portfolioReturns,
-                            borderColor: '#667eea',
-                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                            borderWidth: 3,
-                            fill: true,
-                            tension: 0.4,
-                            pointBackgroundColor: '#667eea',
-                            pointBorderColor: '#ffffff',
-                            pointBorderWidth: 2,
-                            pointRadius: 4
-                        }, {
-                            label: 'Mid-Cap Benchmark %',
-                            data: benchmarkReturns,
-                            borderColor: '#94a3b8',
-                            backgroundColor: 'rgba(148, 163, 184, 0.05)',
-                            borderWidth: 2,
-                            fill: false,
-                            tension: 0.4,
-                            pointBackgroundColor: '#94a3b8',
-                            pointBorderColor: '#ffffff',
-                            pointBorderWidth: 1,
-                            pointRadius: 3,
-                            borderDash: [5, 5]
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'top',
-                                labels: {
-                                    padding: 20,
-                                    font: { size: 12, weight: '600' }
-                                }
-                            },
-                            tooltip: {
-                                mode: 'index',
-                                intersect: false,
-                                callbacks: {
-                                    label: function(context) {
-                                        const label = context.dataset.label || '';
-                                        const value = context.parsed.y;
-                                        return label + ': ' + value.toFixed(2) + '%';
-                                    }
-                                }
+            const dates = timelineData.map(entry => {
+                const date = new Date(entry.date);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+            
+            const portfolioReturns = timelineData.map(entry => ((entry.portfolio_value - 1000) / 1000) * 100);
+            const benchmarkReturns = timelineData.map(entry => ((entry.benchmark_value - 1000) / 1000) * 100);
+
+            console.log('Timeline chart data:', { dates, portfolioReturns, benchmarkReturns });
+
+            timelineChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Portfolio Return %',
+                        data: portfolioReturns,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.1,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 6
+                    }, {
+                        label: 'Mid-Cap Benchmark %',
+                        data: benchmarkReturns,
+                        borderColor: '#94a3b8',
+                        backgroundColor: 'rgba(148, 163, 184, 0.05)',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.1,
+                        pointBackgroundColor: '#94a3b8',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 1,
+                        pointRadius: 4,
+                        borderDash: [5, 5]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                padding: 20,
+                                font: { size: 12, weight: '600' }
                             }
                         },
-                        scales: {
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: 'Date',
-                                    font: { weight: '600' }
-                                },
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)'
-                                }
-                            },
-                            y: {
-                                title: {
-                                    display: true,
-                                    text: 'Return (%)',
-                                    font: { weight: '600' }
-                                },
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)'
-                                },
-                                ticks: {
-                                    callback: function(value) {
-                                        return value.toFixed(1) + '%';
-                                    }
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.dataset.label || '';
+                                    const value = context.parsed.y;
+                                    return label + ': ' + value.toFixed(2) + '%';
                                 }
                             }
-                        },
-                        interaction: {
-                            mode: 'nearest',
-                            axis: 'x',
-                            intersect: false
                         }
-                    }
-                });
-            } catch (error) {
-                console.error('Error updating timeline chart:', error);
-                
-                // Show empty chart with message
-                timelineChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: ['Start'],
-                        datasets: [{
-                            label: 'Portfolio Return %',
-                            data: [0],
-                            borderColor: '#667eea',
-                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                            borderWidth: 3
-                        }]
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false }
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date',
+                                font: { weight: '600' }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Return (%)',
+                                font: { weight: '600' }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(1) + '%';
+                                }
+                            }
                         }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
                     }
-                });
-            }
+                }
+            });
         }
 
         // Fetch historical performance data

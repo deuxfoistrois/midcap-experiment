@@ -239,3 +239,39 @@ class TrailingStopManager:
         except Exception as e:
             logger.error(f"Error calculating stop performance stats: {e}")
             return {}
+    
+    def generate_stop_report(self, positions: Dict) -> Dict:
+        """Generate comprehensive stop loss report"""
+        risk_metrics = self.calculate_risk_metrics(positions)
+        alerts = self.generate_stop_alerts(positions)
+        performance_stats = self.get_stop_performance_stats()
+        
+        # Position-level stop analysis
+        position_analysis = {}
+        for symbol, position in positions.items():
+            current_price = position.get('current_price', 0)
+            stop_level = position.get('stop_level', 0)
+            entry_price = position.get('entry_price', 0)
+            
+            if current_price > 0 and stop_level > 0 and entry_price > 0:
+                position_analysis[symbol] = {
+                    'current_price': current_price,
+                    'stop_level': stop_level,
+                    'stop_type': position.get('stop_type', 'unknown'),
+                    'distance_to_stop_pct': (current_price - stop_level) / current_price,
+                    'distance_to_stop_dollars': current_price - stop_level,
+                    'gain_from_entry_pct': (current_price - entry_price) / entry_price,
+                    'stop_protection_pct': (stop_level - entry_price) / entry_price,
+                    'trailing_activated': position.get('stop_type') == 'trailing',
+                    'days_held': (datetime.now().date() - 
+                                datetime.fromisoformat(position['entry_date']).date()).days
+                }
+        
+        return {
+            'timestamp': datetime.now().isoformat(),
+            'portfolio_risk_metrics': risk_metrics,
+            'position_analysis': position_analysis,
+            'active_alerts': alerts,
+            'historical_performance': performance_stats,
+            'stop_configuration': self.stop_config
+        }

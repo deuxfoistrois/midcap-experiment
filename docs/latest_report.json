@@ -1,19 +1,44 @@
 {
-  "timestamp": "2025-09-09T20:33:29.195722",
+  "timestamp": "2025-09-10T15:50:16.564621",
   "performance": {
     "current_value": 1068.44706,
     "cash": 24.52,
     "total_return": 68.44705999999996,
     "total_return_pct": 6.844705999999996,
-    "daily_change": 0,
-    "daily_change_pct": 0,
+    "daily_change": 0.0,
+    "daily_change_pct": 0.0,
     "positions_count": 4,
-    "days_active": 0,
-    "best_day": 0,
-    "worst_day": 0,
-    "volatility": 0
+    "days_active": 2,
+    "best_day": 0.0,
+    "worst_day": 0.0,
+    "volatility": NaN
   },
-  "benchmark_comparison": {},
+  "benchmark_comparison": {
+    "MDY": {
+      "return": -0.9103873706553477,
+      "outperformance": 0.9103873706553477,
+      "start_price": 603.04,
+      "end_price": 597.55
+    },
+    "SPY": {
+      "return": 0.6704375568330547,
+      "outperformance": -0.6704375568330547,
+      "start_price": 648.83,
+      "end_price": 653.18
+    },
+    "IWM": {
+      "return": -0.5036726128016742,
+      "outperformance": 0.5036726128016742,
+      "start_price": 238.25,
+      "end_price": 237.05
+    },
+    "QQQ": {
+      "return": 0.6305388083680235,
+      "outperformance": -0.6305388083680235,
+      "start_price": 578.87,
+      "end_price": 582.52
+    }
+  },
   "positions": {
     "CRNX": {
       "shares": 8,
@@ -27,7 +52,7 @@
       "stop_distance_pct": 12.000000000000007,
       "catalyst": "FDA PDUFA September 25",
       "sector": "Healthcare",
-      "days_held": 1
+      "days_held": 2
     },
     "STRL": {
       "shares": 0.874,
@@ -41,7 +66,7 @@
       "stop_distance_pct": 13.209389933377516,
       "catalyst": "Q3 Earnings October",
       "sector": "Industrial",
-      "days_held": 1
+      "days_held": 2
     },
     "OTEX": {
       "shares": 8,
@@ -55,7 +80,7 @@
       "stop_distance_pct": 12.000000000000002,
       "catalyst": "Q1 FY2025 Earnings Oct 31",
       "sector": "Technology",
-      "days_held": 1
+      "days_held": 2
     },
     "ZION": {
       "shares": 4,
@@ -69,13 +94,13 @@
       "stop_distance_pct": 15.308787346221434,
       "catalyst": "Q3 Earnings + Fed Cuts",
       "sector": "Financial",
-      "days_held": 1
+      "days_held": 2
     }
   },
   "summary": {
-    "experiment_day": 0,
+    "experiment_day": 2,
     "total_return_pct": 6.844705999999996,
-    "daily_change_pct": 0,
+    "daily_change_pct": 0.0,
     "positions_count": 4,
     "cash_pct": 2.2949195068214236
   }

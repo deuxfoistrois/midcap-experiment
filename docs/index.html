@@ -313,10 +313,14 @@
         async function loadDashboard() {
             try {
                 const data = await fetchPortfolioData();
-                updateStats(data);
-                updateCharts(data);
-                updatePositionsTable(data);
-                updateLastUpdate(data);
+                if (data) {
+                    updateStats(data);
+                    updateCharts(data);
+                    updatePositionsTable(data);
+                    updateLastUpdate(data);
+                } else {
+                    console.error('No data received');
+                }
             } catch (error) {
                 console.error('Error loading dashboard:', error);
             }

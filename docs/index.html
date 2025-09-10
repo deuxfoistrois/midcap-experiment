@@ -399,19 +399,24 @@
 
         // Update statistics cards
         function updateStats(data) {
-            document.getElementById('portfolioValue').textContent = `$${(data.portfolio_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            if (!data) {
+                console.error('No data provided to updateStats');
+                return;
+            }
+
+            document.getElementById('portfolioValue').textContent = `${(data.portfolio_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             
             const totalReturn = data.total_return || 0;
-            const totalReturnPct = data.total_return_pct || 0;
+            const totalReturnPct = (data.total_return_pct || 0) * 100; // Convert decimal to percentage
             
-            document.getElementById('totalReturn').textContent = `$${totalReturn.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('totalReturn').textContent = `${totalReturn.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             document.getElementById('totalReturn').className = totalReturn >= 0 ? 'stat-value positive' : 'stat-value negative';
             
             document.getElementById('returnPct').textContent = `${totalReturnPct.toFixed(2)}%`;
             document.getElementById('returnPct').className = totalReturnPct >= 0 ? 'stat-value positive' : 'stat-value negative';
             
             document.getElementById('positionsCount').textContent = data.positions_count || 0;
-            document.getElementById('cashValue').textContent = `$${(data.cash || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('cashValue').textContent = `${(data.cash || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             
             if (data.date) {
                 const startDate = new Date('2025-09-08');
@@ -422,8 +427,8 @@
         }
 
         // Update charts
-        function updateCharts(data) {
-            updateTimelineChart(data);
+        async function updateCharts(data) {
+            await updateTimelineChart(data);
             updateAllocationChart(data);
             updatePerformanceChart(data);
         }

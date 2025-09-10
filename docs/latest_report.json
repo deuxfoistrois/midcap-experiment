@@ -1,40 +1,40 @@
 {
-  "timestamp": "2025-09-10T15:50:16.564621",
+  "timestamp": "2025-09-10T20:33:30.810352",
   "performance": {
-    "current_value": 1068.44706,
+    "current_value": 1080.5076199999999,
     "cash": 24.52,
-    "total_return": 68.44705999999996,
-    "total_return_pct": 6.844705999999996,
-    "daily_change": 0.0,
-    "daily_change_pct": 0.0,
+    "total_return": 80.50761999999986,
+    "total_return_pct": 8.050761999999986,
+    "daily_change": 12.060559999999896,
+    "daily_change_pct": 1.128793409754892,
     "positions_count": 4,
     "days_active": 2,
-    "best_day": 0.0,
-    "worst_day": 0.0,
+    "best_day": 1.1287934097549135,
+    "worst_day": 1.1287934097549135,
     "volatility": NaN
   },
   "benchmark_comparison": {
     "MDY": {
       "return": -0.9103873706553477,
-      "outperformance": 0.9103873706553477,
+      "outperformance": 2.039180780410261,
       "start_price": 603.04,
       "end_price": 597.55
     },
     "SPY": {
       "return": 0.6704375568330547,
-      "outperformance": -0.6704375568330547,
+      "outperformance": 0.4583558529218583,
       "start_price": 648.83,
       "end_price": 653.18
     },
     "IWM": {
       "return": -0.5036726128016742,
-      "outperformance": 0.5036726128016742,
+      "outperformance": 1.6324660225565872,
       "start_price": 238.25,
       "end_price": 237.05
     },
     "QQQ": {
       "return": 0.6305388083680235,
-      "outperformance": -0.6305388083680235,
+      "outperformance": 0.4982546013868896,
       "start_price": 578.87,
       "end_price": 582.52
     }
@@ -43,13 +43,13 @@
     "CRNX": {
       "shares": 8,
       "entry_price": 32.5,
-      "current_price": 36.5,
-      "market_value": 292.0,
+      "current_price": 35.0,
+      "market_value": 280.0,
       "cost_basis": 260.0,
-      "pnl": 32.0,
-      "pnl_pct": 12.307692307692308,
+      "pnl": 20.0,
+      "pnl_pct": 7.6923076923076925,
       "stop_level": 32.12,
-      "stop_distance_pct": 12.000000000000007,
+      "stop_distance_pct": 8.228571428571437,
       "catalyst": "FDA PDUFA September 25",
       "sector": "Healthcare",
       "days_held": 2
@@ -57,13 +57,13 @@
     "STRL": {
       "shares": 0.874,
       "entry_price": 286.0,
-      "current_price": 286.69,
-      "market_value": 250.56706,
+      "current_price": 301.13,
+      "market_value": 263.18762,
       "cost_basis": 249.964,
-      "pnl": 0.603059999999998,
-      "pnl_pct": 0.24125874125874047,
-      "stop_level": 248.82,
-      "stop_distance_pct": 13.209389933377516,
+      "pnl": 13.223619999999997,
+      "pnl_pct": 5.290209790209788,
+      "stop_level": 264.9944,
+      "stop_distance_pct": 12.000000000000004,
       "catalyst": "Q3 Earnings October",
       "sector": "Industrial",
       "days_held": 2
@@ -71,12 +71,12 @@
     "OTEX": {
       "shares": 8,
       "entry_price": 30.49,
-      "current_price": 34.22,
-      "market_value": 273.76,
+      "current_price": 35.11,
+      "market_value": 280.88,
       "cost_basis": 243.92,
-      "pnl": 29.840000000000003,
-      "pnl_pct": 12.233519186618565,
-      "stop_level": 30.113599999999998,
+      "pnl": 36.96000000000001,
+      "pnl_pct": 15.15250901935061,
+      "stop_level": 30.8968,
       "stop_distance_pct": 12.000000000000002,
       "catalyst": "Q1 FY2025 Earnings Oct 31",
       "sector": "Technology",
@@ -85,13 +85,13 @@
     "ZION": {
       "shares": 4,
       "entry_price": 55.39,
-      "current_price": 56.9,
-      "market_value": 227.6,
+      "current_price": 57.98,
+      "market_value": 231.92,
       "cost_basis": 221.56,
-      "pnl": 6.039999999999992,
-      "pnl_pct": 2.7261238490702255,
+      "pnl": 10.359999999999985,
+      "pnl_pct": 4.675934284166811,
       "stop_level": 48.1893,
-      "stop_distance_pct": 15.308787346221434,
+      "stop_distance_pct": 16.88634011728181,
       "catalyst": "Q3 Earnings + Fed Cuts",
       "sector": "Financial",
       "days_held": 2
@@ -99,9 +99,9 @@
   },
   "summary": {
     "experiment_day": 2,
-    "total_return_pct": 6.844705999999996,
-    "daily_change_pct": 0.0,
+    "total_return_pct": 8.050761999999986,
+    "daily_change_pct": 1.128793409754892,
     "positions_count": 4,
-    "cash_pct": 2.2949195068214236
+    "cash_pct": 2.2693037555811038
   }
 }

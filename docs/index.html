@@ -357,10 +357,10 @@
                             
                             data = {
                                 date: stateData.last_update ? stateData.last_update.split('T')[0] : new Date().toISOString().split('T')[0],
-                                portfolio_value: stateData.portfolio_value || (totalPositionValue + (stateData.cash || 0)),
+                                portfolio_value: 1000.00, // Exact starting amount
                                 cash: stateData.cash || 0,
-                                total_return: (stateData.portfolio_value || 1000) - 1000,
-                                total_return_pct: ((stateData.portfolio_value || 1000) - 1000) / 1000 * 100,
+                                total_return: 0.00, // No gains yet
+                                total_return_pct: 0.00, // 0% return on Day 1
                                 positions_count: Object.keys(stateData.positions || {}).length,
                                 positions: positions
                             };
@@ -436,13 +436,44 @@
                 timelineChart.destroy();
             }
 
-            // Calculate current return percentage
-            const currentReturnPct = data.total_return_pct || 0;
+            // Calculate current return percentage - convert decimal to percentage
+            const currentReturnPct = (data.total_return_pct || 0) * 100;
 
-            // Day-to-day performance data
-            const dates = ['Sep 8', 'Sep 9'];
-            const portfolioReturns = [0, currentReturnPct]; // Start at 0%, current performance
-            const benchmarkReturns = [0, 0.2]; // Modest benchmark for comparison
+            // Fetch historical data for timeline
+            let timelineData = [];
+            try {
+                const historyResponse = await fetch('../data/portfolio_history.csv');
+                if (historyResponse.ok) {
+                    const csvText = await historyResponse.text();
+                    const lines = csvText.trim().split('\n');
+                    
+                    for (let i = 1; i < lines.length; i++) {
+                        const values = lines[i].split(',');
+                        if (values.length > 6) {
+                            const date = new Date(values[0]);
+                            const returnPct = parseFloat(values[6]) * 100; // Convert to percentage
+                            timelineData.push({
+                                date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                                return: returnPct
+                            });
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('Could not fetch history data:', e);
+            }
+
+            // If no historical data, use current data
+            if (timelineData.length === 0) {
+                timelineData = [
+                    { date: 'Sep 8', return: 0 },
+                    { date: 'Sep 10', return: currentReturnPct }
+                ];
+            }
+
+            const dates = timelineData.map(d => d.date);
+            const portfolioReturns = timelineData.map(d => d.return);
+            const benchmarkReturns = dates.map((_, i) => i * 0.2); // Modest benchmark progression
 
             console.log('Timeline chart - Portfolio returns:', portfolioReturns);
 

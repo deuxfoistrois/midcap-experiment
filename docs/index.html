@@ -352,7 +352,7 @@
 
         // Fetch and load dashboard data
         function loadDashboard() {
-            fetch('./latest.json')
+            fetch('latest.json')
                 .then(response => response.json())
                 .then(data => {
                     updateStats(data);
@@ -404,62 +404,127 @@
                 timelineChart.destroy();
             }
 
-            const currentReturnPct = (data.total_return_pct || 0) * 100;
-
-            // Simple timeline data
-            const dates = ['Sep 8', 'Sep 9', 'Sep 10'];
-            const portfolioReturns = [0, 6.84, currentReturnPct];
-            const benchmarkReturns = [0, 0.2, 0.4];
-
-            timelineChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: dates,
-                    datasets: [{
-                        label: 'Your Portfolio',
-                        data: portfolioReturns,
-                        borderColor: '#667eea',
-                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                        borderWidth: 3,
-                        fill: true,
-                        pointBackgroundColor: '#667eea',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointRadius: 6
-                    }, {
-                        label: 'Mid-Cap Benchmark',
-                        data: benchmarkReturns,
-                        borderColor: '#94a3b8',
-                        borderWidth: 2,
-                        fill: false,
-                        pointBackgroundColor: '#94a3b8',
-                        pointRadius: 4,
-                        borderDash: [5, 5]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'top'
+            // Fetch CSV data dynamically
+            fetch('../data/portfolio_history.csv')
+                .then(response => response.text())
+                .then(csvText => {
+                    const lines = csvText.trim().split('\n');
+                    const timelineData = [];
+                    
+                    // Parse CSV data (skip header row)
+                    for (let i = 1; i < lines.length; i++) {
+                        const values = lines[i].split(',');
+                        if (values.length > 6) {
+                            const date = new Date(values[0]);
+                            const returnPct = parseFloat(values[6]) * 100; // Convert to percentage
+                            timelineData.push({
+                                date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                                return: returnPct
+                            });
                         }
-                    },
-                    scales: {
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Return (%)'
+                    }
+                    
+                    // If no CSV data, fall back to current data only
+                    if (timelineData.length === 0) {
+                        const currentReturnPct = (data.total_return_pct || 0) * 100;
+                        timelineData.push(
+                            { date: 'Sep 8', return: 0 },
+                            { date: 'Current', return: currentReturnPct }
+                        );
+                    }
+
+                    const dates = timelineData.map(d => d.date);
+                    const portfolioReturns = timelineData.map(d => d.return);
+                    const benchmarkReturns = dates.map((_, i) => i * 0.2);
+
+                    timelineChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: dates,
+                            datasets: [{
+                                label: 'Your Portfolio',
+                                data: portfolioReturns,
+                                borderColor: '#667eea',
+                                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                                borderWidth: 3,
+                                fill: true,
+                                pointBackgroundColor: '#667eea',
+                                pointBorderColor: '#ffffff',
+                                pointBorderWidth: 2,
+                                pointRadius: 6
+                            }, {
+                                label: 'Mid-Cap Benchmark',
+                                data: benchmarkReturns,
+                                borderColor: '#94a3b8',
+                                borderWidth: 2,
+                                fill: false,
+                                pointBackgroundColor: '#94a3b8',
+                                pointRadius: 4,
+                                borderDash: [5, 5]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top'
+                                }
                             },
-                            ticks: {
-                                callback: function(value) {
-                                    return value + '%';
+                            scales: {
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'Return (%)'
+                                    },
+                                    ticks: {
+                                        callback: function(value) {
+                                            return value + '%';
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
-                }
-            });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching CSV:', error);
+                    // Create fallback chart with current data only
+                    const currentReturnPct = (data.total_return_pct || 0) * 100;
+                    const dates = ['Sep 8', 'Current'];
+                    const portfolioReturns = [0, currentReturnPct];
+                    const benchmarkReturns = [0, 0.2];
+
+                    timelineChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: dates,
+                            datasets: [{
+                                label: 'Your Portfolio',
+                                data: portfolioReturns,
+                                borderColor: '#667eea',
+                                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                                borderWidth: 3,
+                                fill: true,
+                                pointBackgroundColor: '#667eea',
+                                pointRadius: 6
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'top' }
+                            },
+                            scales: {
+                                y: {
+                                    title: { display: true, text: 'Return (%)' },
+                                    ticks: { callback: function(value) { return value + '%'; } }
+                                }
+                            }
+                        }
+                    });
+                });
         }
 
         // Update allocation chart

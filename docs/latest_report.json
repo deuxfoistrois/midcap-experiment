@@ -1,107 +1,107 @@
 {
-  "timestamp": "2025-09-10T20:33:30.810352",
+  "timestamp": "2025-09-11T20:44:47.704867",
   "performance": {
-    "current_value": 1080.5076199999999,
+    "current_value": 1085.7238399999999,
     "cash": 24.52,
-    "total_return": 80.50761999999986,
-    "total_return_pct": 8.050761999999986,
-    "daily_change": 12.060559999999896,
-    "daily_change_pct": 1.128793409754892,
+    "total_return": 85.72383999999988,
+    "total_return_pct": 8.572383999999989,
+    "daily_change": 5.216219999999794,
+    "daily_change_pct": 0.48275642887181064,
     "positions_count": 4,
-    "days_active": 2,
+    "days_active": 3,
     "best_day": 1.1287934097549135,
-    "worst_day": 1.1287934097549135,
-    "volatility": NaN
+    "worst_day": 0.48275642887183334,
+    "volatility": 0.4568171300797099
   },
   "benchmark_comparison": {
     "MDY": {
-      "return": -0.9103873706553477,
-      "outperformance": 2.039180780410261,
+      "return": 0.7180286548156078,
+      "outperformance": 0.8989705065654103,
       "start_price": 603.04,
-      "end_price": 597.55
+      "end_price": 607.37
     },
     "SPY": {
-      "return": 0.6704375568330547,
-      "outperformance": 0.4583558529218583,
+      "return": 1.3562874712944768,
+      "outperformance": 0.2607116900865414,
       "start_price": 648.83,
-      "end_price": 653.18
+      "end_price": 657.63
     },
     "IWM": {
-      "return": -0.5036726128016742,
-      "outperformance": 1.6324660225565872,
+      "return": 1.0703043022035725,
+      "outperformance": 0.5466948591774456,
       "start_price": 238.25,
-      "end_price": 237.05
+      "end_price": 240.8
     },
     "QQQ": {
-      "return": 0.6305388083680235,
-      "outperformance": 0.4982546013868896,
+      "return": 0.900029367560944,
+      "outperformance": 0.7169697938200742,
       "start_price": 578.87,
-      "end_price": 582.52
+      "end_price": 584.08
     }
   },
   "positions": {
     "CRNX": {
       "shares": 8,
       "entry_price": 32.5,
-      "current_price": 35.0,
-      "market_value": 280.0,
+      "current_price": 33.73,
+      "market_value": 269.84,
       "cost_basis": 260.0,
-      "pnl": 20.0,
-      "pnl_pct": 7.6923076923076925,
-      "stop_level": 32.12,
-      "stop_distance_pct": 8.228571428571437,
+      "pnl": 9.839999999999975,
+      "pnl_pct": 3.784615384615375,
+      "stop_level": 28.275,
+      "stop_distance_pct": 16.17254669433738,
       "catalyst": "FDA PDUFA September 25",
       "sector": "Healthcare",
-      "days_held": 2
+      "days_held": 3
     },
     "STRL": {
       "shares": 0.874,
       "entry_price": 286.0,
-      "current_price": 301.13,
-      "market_value": 263.18762,
+      "current_price": 316.16,
+      "market_value": 276.32384,
       "cost_basis": 249.964,
-      "pnl": 13.223619999999997,
-      "pnl_pct": 5.290209790209788,
-      "stop_level": 264.9944,
-      "stop_distance_pct": 12.000000000000004,
+      "pnl": 26.359840000000023,
+      "pnl_pct": 10.545454545454554,
+      "stop_level": 278.2208,
+      "stop_distance_pct": 12.000000000000007,
       "catalyst": "Q3 Earnings October",
       "sector": "Industrial",
-      "days_held": 2
+      "days_held": 3
     },
     "OTEX": {
       "shares": 8,
       "entry_price": 30.49,
-      "current_price": 35.11,
-      "market_value": 280.88,
+      "current_price": 35.25,
+      "market_value": 282.0,
       "cost_basis": 243.92,
-      "pnl": 36.96000000000001,
-      "pnl_pct": 15.15250901935061,
-      "stop_level": 30.8968,
+      "pnl": 38.08000000000001,
+      "pnl_pct": 15.611675959330935,
+      "stop_level": 31.02,
       "stop_distance_pct": 12.000000000000002,
       "catalyst": "Q1 FY2025 Earnings Oct 31",
       "sector": "Technology",
-      "days_held": 2
+      "days_held": 3
     },
     "ZION": {
       "shares": 4,
       "entry_price": 55.39,
-      "current_price": 57.98,
-      "market_value": 231.92,
+      "current_price": 58.26,
+      "market_value": 233.04,
       "cost_basis": 221.56,
-      "pnl": 10.359999999999985,
-      "pnl_pct": 4.675934284166811,
-      "stop_level": 48.1893,
-      "stop_distance_pct": 16.88634011728181,
+      "pnl": 11.47999999999999,
+      "pnl_pct": 5.181440693265928,
+      "stop_level": 51.2688,
+      "stop_distance_pct": 12.0,
       "catalyst": "Q3 Earnings + Fed Cuts",
       "sector": "Financial",
-      "days_held": 2
+      "days_held": 3
     }
   },
   "summary": {
-    "experiment_day": 2,
-    "total_return_pct": 8.050761999999986,
-    "daily_change_pct": 1.128793409754892,
+    "experiment_day": 3,
+    "total_return_pct": 8.572383999999989,
+    "daily_change_pct": 0.48275642887181064,
     "positions_count": 4,
-    "cash_pct": 2.2693037555811038
+    "cash_pct": 2.2584011787012064
   }
 }

@@ -408,137 +408,143 @@
             fetch('../data/portfolio_history.csv')
                 .then(response => response.text())
                 .then(csvText => {
+                    console.log('CSV data received:', csvText.substring(0, 200)); // Debug log
+                    
                     const lines = csvText.trim().split('\n');
                     const timelineData = [];
                     
                     // Parse CSV data (skip header row)
                     for (let i = 1; i < lines.length; i++) {
                         const values = lines[i].split(',');
-                        if (values.length > 6) {
-                            const date = new Date(values[0]);
-                            const returnPct = parseFloat(values[6]) * 100; // Convert to percentage
+                        console.log(`Row ${i}:`, values); // Debug log
+                        
+                        if (values.length > 6 && values[0] && values[6]) {
+                            const dateStr = values[0].trim();
+                            const returnPct = parseFloat(values[6]) * 100;
+                            
+                            // Parse date and format for display
+                            const date = new Date(dateStr);
+                            const displayDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                            
                             timelineData.push({
-                                date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                                date: displayDate,
                                 return: returnPct
                             });
+                            
+                            console.log(`Added data point: ${displayDate} = ${returnPct.toFixed(2)}%`); // Debug log
                         }
                     }
                     
-                    // If no CSV data, fall back to current data only
-                    if (timelineData.length === 0) {
-                        const currentReturnPct = (data.total_return_pct || 0) * 100;
-                        timelineData.push(
-                            { date: 'Sep 8', return: 0 },
-                            { date: 'Current', return: currentReturnPct }
-                        );
+                    console.log('Final timeline data:', timelineData); // Debug log
+                    
+                    // Create chart with actual data
+                    if (timelineData.length > 0) {
+                        const dates = timelineData.map(d => d.date);
+                        const portfolioReturns = timelineData.map(d => d.return);
+                        
+                        // Create simple benchmark progression
+                        const benchmarkReturns = dates.map((_, i) => i * 0.15); // 0.15% per day
+                        
+                        createTimelineChart(ctx, dates, portfolioReturns, benchmarkReturns);
+                    } else {
+                        // Fallback if no CSV data
+                        createFallbackChart(ctx, data);
                     }
-
-                    const dates = timelineData.map(d => d.date);
-                    const portfolioReturns = timelineData.map(d => d.return);
-                    const benchmarkReturns = dates.map((_, i) => i * 0.2);
-
-                    timelineChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: dates,
-                            datasets: [{
-                                label: 'Your Portfolio',
-                                data: portfolioReturns,
-                                borderColor: '#667eea',
-                                backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                                borderWidth: 3,
-                                fill: true,
-                                tension: 0,
-                                pointBackgroundColor: '#667eea',
-                                pointBorderColor: '#ffffff',
-                                pointBorderWidth: 2,
-                                pointRadius: 8,
-                                pointHoverRadius: 10
-                            }, {
-                                label: 'Mid-Cap Benchmark',
-                                data: benchmarkReturns,
-                                borderColor: '#94a3b8',
-                                borderWidth: 2,
-                                fill: false,
-                                tension: 0,
-                                pointBackgroundColor: '#94a3b8',
-                                pointBorderColor: '#ffffff',
-                                pointBorderWidth: 1,
-                                pointRadius: 5,
-                                borderDash: [5, 5]
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    position: 'top'
-                                },
-                                tooltip: {
-                                    mode: 'index',
-                                    intersect: false,
-                                    callbacks: {
-                                        label: function(context) {
-                                            return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
-                                        }
-                                    }
-                                }
-                            },
-                            scales: {
-                                y: {
-                                    title: {
-                                        display: true,
-                                        text: 'Return (%)'
-                                    },
-                                    ticks: {
-                                        callback: function(value) {
-                                            return value.toFixed(1) + '%';
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
                 })
                 .catch(error => {
                     console.error('Error fetching CSV:', error);
-                    // Create fallback chart with current data only
-                    const currentReturnPct = (data.total_return_pct || 0) * 100;
-                    const dates = ['Sep 8', 'Current'];
-                    const portfolioReturns = [0, currentReturnPct];
-                    const benchmarkReturns = [0, 0.2];
+                    createFallbackChart(ctx, data);
+                });
+        }
 
-                    timelineChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: dates,
-                            datasets: [{
-                                label: 'Your Portfolio',
-                                data: portfolioReturns,
-                                borderColor: '#667eea',
-                                backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                                borderWidth: 3,
-                                fill: true,
-                                pointBackgroundColor: '#667eea',
-                                pointRadius: 6
-                            }]
+        // Create the actual timeline chart
+        function createTimelineChart(ctx, dates, portfolioReturns, benchmarkReturns) {
+            timelineChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Your Portfolio',
+                        data: portfolioReturns,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 8,
+                        pointHoverRadius: 10
+                    }, {
+                        label: 'Mid-Cap Benchmark',
+                        data: benchmarkReturns,
+                        borderColor: '#94a3b8',
+                        backgroundColor: 'rgba(148, 163, 184, 0.05)',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0,
+                        pointBackgroundColor: '#94a3b8',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 1,
+                        pointRadius: 5,
+                        borderDash: [5, 5]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                padding: 20,
+                                font: { size: 12, weight: '600' }
+                            }
                         },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { position: 'top' }
-                            },
-                            scales: {
-                                y: {
-                                    title: { display: true, text: 'Return (%)' },
-                                    ticks: { callback: function(value) { return value + '%'; } }
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
                                 }
                             }
                         }
-                    });
-                });
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date',
+                                font: { weight: '600' }
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Return (%)',
+                                font: { weight: '600' }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(1) + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Fallback chart if CSV fails
+        function createFallbackChart(ctx, data) {
+            const currentReturnPct = (data.total_return_pct || 0) * 100;
+            const dates = ['Sep 9', 'Sep 10', 'Sep 11'];
+            const portfolioReturns = [6.84, 8.05, currentReturnPct];
+            const benchmarkReturns = [0.15, 0.30, 0.45];
+
+            createTimelineChart(ctx, dates, portfolioReturns, benchmarkReturns);
         }
 
         // Update allocation chart

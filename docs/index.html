@@ -448,18 +448,23 @@
                                 backgroundColor: 'rgba(102, 126, 234, 0.1)',
                                 borderWidth: 3,
                                 fill: true,
+                                tension: 0,
                                 pointBackgroundColor: '#667eea',
                                 pointBorderColor: '#ffffff',
                                 pointBorderWidth: 2,
-                                pointRadius: 6
+                                pointRadius: 8,
+                                pointHoverRadius: 10
                             }, {
                                 label: 'Mid-Cap Benchmark',
                                 data: benchmarkReturns,
                                 borderColor: '#94a3b8',
                                 borderWidth: 2,
                                 fill: false,
+                                tension: 0,
                                 pointBackgroundColor: '#94a3b8',
-                                pointRadius: 4,
+                                pointBorderColor: '#ffffff',
+                                pointBorderWidth: 1,
+                                pointRadius: 5,
                                 borderDash: [5, 5]
                             }]
                         },
@@ -469,6 +474,15 @@
                             plugins: {
                                 legend: {
                                     position: 'top'
+                                },
+                                tooltip: {
+                                    mode: 'index',
+                                    intersect: false,
+                                    callbacks: {
+                                        label: function(context) {
+                                            return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
+                                        }
+                                    }
                                 }
                             },
                             scales: {
@@ -479,7 +493,7 @@
                                     },
                                     ticks: {
                                         callback: function(value) {
-                                            return value + '%';
+                                            return value.toFixed(1) + '%';
                                         }
                                     }
                                 }

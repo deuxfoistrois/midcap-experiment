@@ -1,54 +1,54 @@
 {
-  "date": "2025-09-11",
-  "portfolio_value": 1085.7238399999999,
+  "date": "2025-09-12",
+  "portfolio_value": 1089.6870700000002,
   "cash": 24.52,
-  "total_return": 85.72383999999988,
-  "total_return_pct": 0.08572383999999988,
+  "total_return": 89.68707000000018,
+  "total_return_pct": 0.08968707000000017,
   "positions_count": 4,
   "positions": {
     "CRNX": {
       "shares": 8,
       "entry_price": 32.5,
-      "current_price": 33.73,
-      "market_value": 269.84,
-      "unrealized_pnl": 9.839999999999975,
-      "unrealized_pnl_pct": 0.03784615384615375,
+      "current_price": 34.0,
+      "market_value": 272.0,
+      "unrealized_pnl": 12.0,
+      "unrealized_pnl_pct": 0.046153846153846156,
       "stop_level": 28.275,
       "stop_type": "initial",
-      "days_held": 3
+      "days_held": 4
     },
     "STRL": {
       "shares": 0.874,
       "entry_price": 286.0,
-      "current_price": 316.16,
-      "market_value": 276.32384,
-      "unrealized_pnl": 26.35984000000002,
-      "unrealized_pnl_pct": 0.10545454545454554,
+      "current_price": 313.555,
+      "market_value": 274.04707,
+      "unrealized_pnl": 24.08307000000002,
+      "unrealized_pnl_pct": 0.09634615384615387,
       "stop_level": 278.2208,
       "stop_type": "trailing",
-      "days_held": 3
+      "days_held": 4
     },
     "OTEX": {
       "shares": 8,
       "entry_price": 30.49,
-      "current_price": 35.25,
-      "market_value": 282.0,
-      "unrealized_pnl": 38.08000000000001,
-      "unrealized_pnl_pct": 0.15611675959330934,
-      "stop_level": 31.02,
+      "current_price": 35.68,
+      "market_value": 285.44,
+      "unrealized_pnl": 41.52000000000001,
+      "unrealized_pnl_pct": 0.1702197441784192,
+      "stop_level": 31.3984,
       "stop_type": "trailing",
-      "days_held": 3
+      "days_held": 4
     },
     "ZION": {
       "shares": 4,
       "entry_price": 55.39,
-      "current_price": 58.26,
-      "market_value": 233.04,
-      "unrealized_pnl": 11.47999999999999,
-      "unrealized_pnl_pct": 0.05181440693265928,
-      "stop_level": 51.2688,
+      "current_price": 58.42,
+      "market_value": 233.68,
+      "unrealized_pnl": 12.120000000000005,
+      "unrealized_pnl_pct": 0.05470301498465429,
+      "stop_level": 51.409600000000005,
       "stop_type": "trailing",
-      "days_held": 3
+      "days_held": 4
     }
   }
 }

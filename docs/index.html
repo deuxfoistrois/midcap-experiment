@@ -352,17 +352,32 @@
 
         // Fetch and load dashboard data
         function loadDashboard() {
-            fetch('latest.json')
-                .then(response => response.json())
-                .then(data => {
-                    updateStats(data);
-                    updateCharts(data);
-                    updatePositionsTable(data);
-                    updateLastUpdate(data);
+            // Fetch both portfolio data and trailing stops data
+            Promise.all([
+                fetch('latest.json').then(response => response.json()),
+                fetch('trailing_stops_report.json').then(response => response.json()).catch(error => {
+                    console.log('trailing_stops_report.json not found, trying portfolio_state.json');
+                    return fetch('../state/portfolio_state.json').then(response => response.json());
                 })
-                .catch(error => {
-                    console.error('Error loading dashboard:', error);
-                });
+            ])
+            .then(([portfolioData, trailingStopsData]) => {
+                updateStats(portfolioData);
+                updateCharts(portfolioData);
+                updatePositionsTable(portfolioData, trailingStopsData);
+                updateLastUpdate(portfolioData);
+            })
+            .catch(error => {
+                console.error('Error loading dashboard:', error);
+                // Fallback to just portfolio data
+                fetch('latest.json')
+                    .then(response => response.json())
+                    .then(data => {
+                        updateStats(data);
+                        updateCharts(data);
+                        updatePositionsTable(data, null);
+                        updateLastUpdate(data);
+                    });
+            });
         }
 
         // Update statistics cards
@@ -642,12 +657,12 @@
             });
         }
 
-        // Update positions table
-        function updatePositionsTable(data) {
+        // Updated positions table function to use trailing stops data
+        function updatePositionsTable(portfolioData, trailingStopsData) {
             const tbody = document.getElementById('positionsTableBody');
             tbody.innerHTML = '';
 
-            const positions = data.positions || {};
+            const positions = portfolioData.positions || {};
 
             for (const [symbol, position] of Object.entries(positions)) {
                 const row = document.createElement('tr');
@@ -655,6 +670,14 @@
                 const pnl = position.unrealized_pnl || 0;
                 const pnlPct = (position.unrealized_pnl_pct || 0) * 100;
                 const pnlClass = pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+                
+                // Get stop level from trailing stops data, fallback to position data
+                let stopLevel = 0;
+                if (trailingStopsData && trailingStopsData.positions && trailingStopsData.positions[symbol]) {
+                    stopLevel = trailingStopsData.positions[symbol].stop_level || 0;
+                } else if (position.stop_level) {
+                    stopLevel = position.stop_level;
+                }
 
                 row.innerHTML = `
                     <td><span class="symbol">${symbol}</span></td>
@@ -664,7 +687,7 @@
                     <td class="price">$${(position.market_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                     <td class="${pnlClass}">$${pnl.toFixed(2)}</td>
                     <td class="${pnlClass}">${pnlPct.toFixed(2)}%</td>
-                    <td class="stop-level">$${(position.stop_level || 0).toFixed(2)}</td>
+                    <td class="stop-level">$${stopLevel.toFixed(2)}</td>
                     <td class="catalyst">${position.catalyst || 'N/A'}</td>
                 `;
                 

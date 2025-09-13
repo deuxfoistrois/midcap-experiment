@@ -1,0 +1,10 @@
+2025-09-13 03:05:20,392 - INFO - Portfolio state loaded successfully
+2025-09-13 03:05:20,392 - INFO - Updating stock prices...
+2025-09-13 03:05:20,478 - INFO - Updated CRNX: $34.00 (P&L: 4.62%)
+2025-09-13 03:05:20,565 - INFO - Updated STRL: $313.56 (P&L: 9.63%)
+2025-09-13 03:05:20,639 - INFO - Updated OTEX: $35.68 (P&L: 17.02%)
+2025-09-13 03:05:20,716 - INFO - Updated ZION: $58.42 (P&L: 5.47%)
+2025-09-13 03:05:20,716 - INFO - Updating stop levels...
+2025-09-13 03:05:20,717 - INFO - Portfolio value updated: $1089.69
+2025-09-13 03:05:20,720 - ERROR - Error saving daily snapshot: Must have equal len keys and value when setting with an iterable
+2025-09-13 03:05:20,721 - INFO - Portfolio state saved

@@ -14,7 +14,9 @@
       "unrealized_pnl_pct": 0.046153846153846156,
       "highest_price": 36.5,
       "stop_level": 28.275,
-      "stop_type": "initial"
+      "stop_type": "initial",
+      "stop_distance": 0.1683823529411765,
+      "stop_distance_dollars": 5.725000000000001
     },
     "STRL": {
       "symbol": "STRL",
@@ -26,11 +28,13 @@
       "sector": "Industrial",
       "current_price": 313.555,
       "market_value": 274.04707,
-      "unrealized_pnl": 24.08307000000002,
+      "unrealized_pnl": 24.083070000000006,
       "unrealized_pnl_pct": 0.09634615384615387,
       "highest_price": 316.16,
       "stop_level": 290.8672,
-      "stop_type": "trailing"
+      "stop_type": "trailing",
+      "stop_distance": 0.07235668383537172,
+      "stop_distance_dollars": 22.68779999999998
     },
     "OTEX": {
       "symbol": "OTEX",
@@ -46,7 +50,9 @@
       "unrealized_pnl_pct": 0.1702197441784192,
       "highest_price": 35.68,
       "stop_level": 32.8256,
-      "stop_type": "trailing"
+      "stop_type": "trailing",
+      "stop_distance": 0.07999999999999995,
+      "stop_distance_dollars": 2.8543999999999983
     },
     "ZION": {
       "symbol": "ZION",
@@ -62,11 +68,13 @@
       "unrealized_pnl_pct": 0.05470301498465429,
       "highest_price": 58.42,
       "stop_level": 53.7464,
-      "stop_type": "trailing"
+      "stop_type": "trailing",
+      "stop_distance": 0.08,
+      "stop_distance_dollars": 4.6736
     }
   },
   "cash": 24.52,
   "portfolio_value": 1089.6870700000002,
-  "last_update": "2025-09-13T02:48:04.626988",
+  "last_update": "2025-09-13T03:05:20.720708",
   "experiment_start": "2025-09-08T00:00:00"
 }

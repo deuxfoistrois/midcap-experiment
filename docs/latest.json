@@ -15,18 +15,18 @@
       "unrealized_pnl_pct": 0.046153846153846156,
       "stop_level": 28.275,
       "stop_type": "initial",
-      "days_held": 5
+      "catalyst": "FDA PDUFA September 25"
     },
     "STRL": {
       "shares": 0.874,
       "entry_price": 286.0,
       "current_price": 313.555,
       "market_value": 274.04707,
-      "unrealized_pnl": 24.08307000000002,
+      "unrealized_pnl": 24.083070000000006,
       "unrealized_pnl_pct": 0.09634615384615387,
       "stop_level": 290.8672,
       "stop_type": "trailing",
-      "days_held": 5
+      "catalyst": "Q3 Earnings October"
     },
     "OTEX": {
       "shares": 8,
@@ -37,7 +37,7 @@
       "unrealized_pnl_pct": 0.1702197441784192,
       "stop_level": 32.8256,
       "stop_type": "trailing",
-      "days_held": 5
+      "catalyst": "Q1 FY2025 Earnings Oct 31"
     },
     "ZION": {
       "shares": 4,
@@ -48,7 +48,7 @@
       "unrealized_pnl_pct": 0.05470301498465429,
       "stop_level": 53.7464,
       "stop_type": "trailing",
-      "days_held": 5
+      "catalyst": "Q3 Earnings + Fed Cuts"
     }
   }
 }

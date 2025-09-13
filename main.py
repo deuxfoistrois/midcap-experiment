@@ -1,78 +1,163 @@
 #!/usr/bin/env python3
 """
-Mid-Cap Trading Experiment - Main Portfolio Tracker
-Enhanced version with trailing stop-loss capabilities
+Mid-Cap Portfolio Tracker with Advanced Trailing Stop-Loss
+Professional portfolio management system
 """
 
 import json
 import os
-import pandas as pd
-import yfinance as yf
-from datetime import datetime, timedelta
 import requests
-from typing import Dict, List, Tuple
+import pandas as pd
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
 import logging
+from trailing_stops import TrailingStopManager
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('logs/portfolio.log'),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger(__name__)
 
 class MidCapPortfolioTracker:
     def __init__(self, config_file='config.json'):
-        """Initialize the portfolio tracker with configuration"""
+        """Initialize the portfolio tracker"""
+        # Load configuration
         with open(config_file, 'r') as f:
             self.config = json.load(f)
         
-        self.api_key = os.environ.get('ALPHAVANTAGE_API_KEY')
+        # Initialize trailing stop manager
+        self.stop_manager = TrailingStopManager(config_file)
+        
+        # File paths
         self.portfolio_state_file = 'state/portfolio_state.json'
         self.portfolio_history_file = 'data/portfolio_history.csv'
-        self.stop_loss_history_file = 'data/stop_loss_history.csv'
+        self.benchmark_file = 'data/benchmark_history.csv'
         
-        # Create directories
+        # API setup
+        self.api_key = os.environ.get('ALPHAVANTAGE_API_KEY')
+        if not self.api_key:
+            raise ValueError("ALPHAVANTAGE_API_KEY environment variable not set")
+        
+        # Initialize portfolio state
+        self.portfolio_state = self.load_portfolio_state()
+        
+        # Ensure directories exist
         os.makedirs('state', exist_ok=True)
         os.makedirs('data', exist_ok=True)
         os.makedirs('docs', exist_ok=True)
+        os.makedirs('logs', exist_ok=True)
         os.makedirs('reports', exist_ok=True)
-        
-        # Load current portfolio state
-        self.portfolio_state = self.load_portfolio_state()
-        
+
     def load_portfolio_state(self) -> Dict:
-        """Load current portfolio state from file"""
-        if os.path.exists(self.portfolio_state_file):
+        """Load current portfolio state"""
+        try:
             with open(self.portfolio_state_file, 'r') as f:
-                return json.load(f)
-        else:
-            return {
-                "positions": {},
-                "cash": self.config['portfolio']['initial_capital'],
-                "portfolio_value": self.config['portfolio']['initial_capital'],
-                "last_update": None
-            }
-    
-    def save_portfolio_state(self):
-        """Save current portfolio state to file"""
-        with open(self.portfolio_state_file, 'w') as f:
-            json.dump(self.portfolio_state, f, indent=2, default=str)
-    
-    def get_stock_price(self, symbol: str) -> Dict:
-        """Get current stock price using Alpha Vantage API"""
-        if not self.api_key:
-            logger.error("Alpha Vantage API key not found")
-            return None
-            
-        url = f'https://www.alphavantage.co/query'
-        params = {
-            'function': 'GLOBAL_QUOTE',
-            'symbol': symbol,
-            'apikey': self.api_key
+                state = json.load(f)
+            logger.info("Portfolio state loaded successfully")
+            return state
+        except FileNotFoundError:
+            logger.info("No existing portfolio state found, initializing new portfolio")
+            return self.initialize_portfolio()
+
+    def initialize_portfolio(self) -> Dict:
+        """Initialize new portfolio with default positions"""
+        initial_state = {
+            "positions": {
+                "CRNX": {
+                    "symbol": "CRNX",
+                    "shares": 8.0,
+                    "entry_price": 32.50,
+                    "entry_date": "2025-09-08T00:00:00",
+                    "cost_basis": 260.0,
+                    "catalyst": "FDA PDUFA September 25",
+                    "sector": "Healthcare",
+                    "current_price": 32.50,
+                    "market_value": 260.0,
+                    "unrealized_pnl": 0.0,
+                    "unrealized_pnl_pct": 0.0,
+                    "highest_price": 32.50,
+                    "stop_level": 28.275,
+                    "stop_type": "initial"
+                },
+                "STRL": {
+                    "symbol": "STRL", 
+                    "shares": 0.874,
+                    "entry_price": 286.0,
+                    "entry_date": "2025-09-08T00:00:00",
+                    "cost_basis": 250.0,
+                    "catalyst": "Q3 Earnings October",
+                    "sector": "Industrial",
+                    "current_price": 286.0,
+                    "market_value": 250.0,
+                    "unrealized_pnl": 0.0,
+                    "unrealized_pnl_pct": 0.0,
+                    "highest_price": 286.0,
+                    "stop_level": 248.82,
+                    "stop_type": "initial"
+                },
+                "OTEX": {
+                    "symbol": "OTEX",
+                    "shares": 8.0,
+                    "entry_price": 30.49,
+                    "entry_date": "2025-09-08T00:00:00",
+                    "cost_basis": 243.92,
+                    "catalyst": "Q1 FY2025 Earnings Oct 31",
+                    "sector": "Technology",
+                    "current_price": 30.49,
+                    "market_value": 243.92,
+                    "unrealized_pnl": 0.0,
+                    "unrealized_pnl_pct": 0.0,
+                    "highest_price": 30.49,
+                    "stop_level": 26.53,
+                    "stop_type": "initial"
+                },
+                "ZION": {
+                    "symbol": "ZION",
+                    "shares": 4.0,
+                    "entry_price": 55.39,
+                    "entry_date": "2025-09-08T00:00:00",
+                    "cost_basis": 221.56,
+                    "catalyst": "Q3 Earnings + Fed Cuts",
+                    "sector": "Financial",
+                    "current_price": 55.39,
+                    "market_value": 221.56,
+                    "unrealized_pnl": 0.0,
+                    "unrealized_pnl_pct": 0.0,
+                    "highest_price": 55.39,
+                    "stop_level": 48.19,
+                    "stop_type": "initial"
+                }
+            },
+            "cash": 24.52,
+            "portfolio_value": 1000.00,
+            "last_update": datetime.now().isoformat(),
+            "experiment_start": "2025-09-08T00:00:00"
         }
         
+        self.save_portfolio_state(initial_state)
+        return initial_state
+
+    def get_stock_price(self, symbol: str) -> Optional[Dict]:
+        """Get current stock price from Alpha Vantage"""
         try:
-            response = requests.get(url, params=params)
+            url = "https://www.alphavantage.co/query"
+            params = {
+                'function': 'GLOBAL_QUOTE',
+                'symbol': symbol,
+                'apikey': self.api_key
+            }
+            
+            response = requests.get(url, params=params, timeout=30)
+            response.raise_for_status()
             data = response.json()
             
-            if 'Global Quote' in data:
+            if 'Global Quote' in data and data['Global Quote']:
                 quote = data['Global Quote']
                 return {
                     'symbol': symbol,
@@ -92,231 +177,140 @@ class MidCapPortfolioTracker:
         except Exception as e:
             logger.error(f"Error fetching price for {symbol}: {e}")
             return None
-    
-    def calculate_trailing_stop(self, symbol: str, current_price: float) -> Tuple[float, str]:
-        """Calculate trailing stop loss level"""
-        if symbol not in self.portfolio_state['positions']:
-            return None, "No position"
-        
-        position = self.portfolio_state['positions'][symbol]
-        entry_price = position['entry_price']
-        highest_price = position.get('highest_price', entry_price)
-        
-        # Update highest price if current price is higher
-        if current_price > highest_price:
-            highest_price = current_price
-            self.portfolio_state['positions'][symbol]['highest_price'] = highest_price
-        
-        # Calculate gain from entry
-        gain_from_entry = (current_price - entry_price) / entry_price
-        
-        # Determine stop type and level
-        if gain_from_entry < self.config['risk_management']['stop_loss']['activation_gain_pct']:
-            # Use initial stop loss
-            stop_level = entry_price * (1 - self.config['risk_management']['stop_loss']['initial_stop_pct'])
-            stop_type = "initial"
-        else:
-            # Use trailing stop loss
-            stop_level = highest_price * (1 - self.config['risk_management']['stop_loss']['trailing_stop_pct'])
-            stop_type = "trailing"
-        
-        return stop_level, stop_type
-    
-    def check_stop_loss_triggers(self) -> List[Dict]:
-        """Check if any positions have triggered stop losses"""
-        triggered_stops = []
+
+    def update_stock_prices(self):
+        """Update all stock prices"""
+        logger.info("Updating stock prices...")
         
         for symbol in self.portfolio_state['positions']:
-            position = self.portfolio_state['positions'][symbol]
             price_data = self.get_stock_price(symbol)
             
             if price_data:
-                current_price = price_data['price']
-                stop_level, stop_type = self.calculate_trailing_stop(symbol, current_price)
+                position = self.portfolio_state['positions'][symbol]
+                position['current_price'] = price_data['price']
                 
-                # Update position with current data
-                position['current_price'] = current_price
-                position['stop_level'] = stop_level
-                position['stop_type'] = stop_type
+                # Update highest price if current is higher
+                if price_data['price'] > position.get('highest_price', position['entry_price']):
+                    position['highest_price'] = price_data['price']
                 
-                # Check if stop is triggered
-                if current_price <= stop_level:
-                    triggered_stops.append({
-                        'symbol': symbol,
-                        'current_price': current_price,
-                        'stop_level': stop_level,
-                        'stop_type': stop_type,
-                        'position': position
-                    })
-        
-        return triggered_stops
-    
-    def execute_stop_loss(self, symbol: str, price: float, stop_type: str):
-        """Execute stop loss for a position"""
-        if symbol not in self.portfolio_state['positions']:
-            return False
-        
-        position = self.portfolio_state['positions'][symbol]
-        shares = position['shares']
-        entry_price = position['entry_price']
-        
-        # Calculate P&L
-        proceeds = shares * price
-        cost_basis = shares * entry_price
-        pnl = proceeds - cost_basis
-        pnl_pct = (price - entry_price) / entry_price
-        
-        # Add to cash
-        self.portfolio_state['cash'] += proceeds
-        
-        # Log the trade
-        trade_record = {
-            'date': datetime.now().isoformat(),
-            'symbol': symbol,
-            'action': 'SELL_STOP',
-            'shares': shares,
-            'price': price,
-            'proceeds': proceeds,
-            'pnl': pnl,
-            'pnl_pct': pnl_pct,
-            'stop_type': stop_type,
-            'entry_price': entry_price,
-            'days_held': (datetime.now().date() - datetime.fromisoformat(position['entry_date']).date()).days
-        }
-        
-        # Remove position
-        del self.portfolio_state['positions'][symbol]
-        
-        # Save stop loss to history
-        self.save_stop_loss_history(trade_record)
-        
-        logger.info(f"STOP LOSS EXECUTED: {symbol} at ${price:.2f} ({stop_type}), P&L: ${pnl:.2f} ({pnl_pct:.2%})")
-        
-        return True
-    
-    def save_stop_loss_history(self, trade_record: Dict):
-        """Save stop loss execution to history file"""
-        df_new = pd.DataFrame([trade_record])
-        
-        if os.path.exists(self.stop_loss_history_file):
-            df_existing = pd.read_csv(self.stop_loss_history_file)
-            df_combined = pd.concat([df_existing, df_new], ignore_index=True)
-        else:
-            df_combined = df_new
-        
-        df_combined.to_csv(self.stop_loss_history_file, index=False)
-    
-    def update_portfolio_value(self):
-        """Update current portfolio value and metrics"""
-        total_position_value = 0
-        
-        for symbol in self.portfolio_state['positions']:
-            position = self.portfolio_state['positions'][symbol]
-            price_data = self.get_stock_price(symbol)
-            
-            if price_data:
-                current_price = price_data['price']
+                # Calculate unrealized P&L
                 shares = position['shares']
-                market_value = shares * current_price
+                entry_price = position['entry_price']
+                current_price = price_data['price']
                 
-                # Update position data
-                position['current_price'] = current_price
-                position['market_value'] = market_value
-                position['unrealized_pnl'] = market_value - (shares * position['entry_price'])
-                position['unrealized_pnl_pct'] = (current_price - position['entry_price']) / position['entry_price']
+                position['market_value'] = shares * current_price
+                position['unrealized_pnl'] = (current_price - entry_price) * shares
+                position['unrealized_pnl_pct'] = (current_price - entry_price) / entry_price
                 
-                # Update stop levels
-                stop_level, stop_type = self.calculate_trailing_stop(symbol, current_price)
-                position['stop_level'] = stop_level
-                position['stop_type'] = stop_type
-                
-                total_position_value += market_value
+                logger.info(f"Updated {symbol}: ${current_price:.2f} (P&L: {position['unrealized_pnl_pct']:.2%})")
+            else:
+                logger.warning(f"Could not update price for {symbol}")
+
+    def update_stop_levels(self):
+        """Update trailing stop levels using TrailingStopManager"""
+        logger.info("Updating stop levels...")
         
-        # Update portfolio totals
-        self.portfolio_state['portfolio_value'] = self.portfolio_state['cash'] + total_position_value
-        self.portfolio_state['last_update'] = datetime.now().isoformat()
+        # Use the TrailingStopManager to update stop levels
+        updated_positions = self.stop_manager.update_stop_levels(self.portfolio_state['positions'])
+        self.portfolio_state['positions'] = updated_positions
         
-        return self.portfolio_state['portfolio_value']
-    
-    def get_benchmark_prices(self) -> Dict:
-        """Get benchmark ETF prices"""
-        benchmarks = {}
-        symbols = [self.config['benchmarks']['primary']] + self.config['benchmarks']['secondary']
+        # Check for stop violations
+        violations = self.stop_manager.check_stop_violations(self.portfolio_state['positions'])
         
-        for symbol in symbols:
-            try:
-                ticker = yf.Ticker(symbol)
-                hist = ticker.history(period='1d')
-                if not hist.empty:
-                    benchmarks[symbol] = hist['Close'].iloc[-1]
-            except Exception as e:
-                logger.error(f"Error getting benchmark price for {symbol}: {e}")
+        if violations:
+            logger.warning(f"Found {len(violations)} stop violations!")
+            for violation in violations:
+                logger.warning(f"STOP TRIGGERED: {violation['symbol']} at ${violation['current_price']:.2f}, stop at ${violation['stop_level']:.2f}")
         
-        return benchmarks
-    
-    def save_daily_snapshot(self):
-        """Save daily portfolio snapshot to history"""
-        portfolio_value = self.portfolio_state['portfolio_value']
+        # Generate and save stop report
+        stop_report = self.stop_manager.generate_stop_report(self.portfolio_state['positions'])
+        
+        with open('docs/trailing_stops_report.json', 'w') as f:
+            json.dump(stop_report, f, indent=2, default=str)
+
+    def update_portfolio_value(self) -> float:
+        """Calculate and update total portfolio value"""
+        total_positions_value = sum(pos['market_value'] for pos in self.portfolio_state['positions'].values())
         cash = self.portfolio_state['cash']
+        portfolio_value = total_positions_value + cash
         
-        # Calculate total invested
-        total_cost_basis = sum(
-            pos['shares'] * pos['entry_price'] 
-            for pos in self.portfolio_state['positions'].values()
-        )
+        self.portfolio_state['portfolio_value'] = portfolio_value
+        logger.info(f"Portfolio value updated: ${portfolio_value:.2f}")
         
-        # Get benchmark prices
-        benchmarks = self.get_benchmark_prices()
+        return portfolio_value
+
+    def save_daily_snapshot(self) -> Dict:
+        """Save daily portfolio snapshot to history"""
+        today = datetime.now().strftime('%Y-%m-%d')
         
-        # Create daily record
+        # Calculate portfolio metrics
+        portfolio_value = self.portfolio_state['portfolio_value']
+        initial_capital = self.config['portfolio']['initial_capital']
+        total_return = portfolio_value - initial_capital
+        total_return_pct = total_return / initial_capital
+        
         daily_record = {
-            'date': datetime.now().date(),
+            'date': today,
             'portfolio_value': portfolio_value,
-            'cash': cash,
-            'positions_value': portfolio_value - cash,
-            'total_invested': total_cost_basis + cash,
-            'total_return': portfolio_value - self.config['portfolio']['initial_capital'],
-            'total_return_pct': (portfolio_value - self.config['portfolio']['initial_capital']) / self.config['portfolio']['initial_capital'],
+            'cash': self.portfolio_state['cash'],
+            'positions_value': sum(pos['market_value'] for pos in self.portfolio_state['positions'].values()),
             'positions_count': len(self.portfolio_state['positions']),
-            **{f'{symbol}_price': price for symbol, price in benchmarks.items()}
+            'total_return': total_return,
+            'total_return_pct': total_return_pct
         }
+        
+        # Add individual position data
+        for symbol, position in self.portfolio_state['positions'].items():
+            daily_record[f'{symbol}_price'] = position['current_price']
+            daily_record[f'{symbol}_pnl'] = position['unrealized_pnl']
+            daily_record[f'{symbol}_pnl_pct'] = position['unrealized_pnl_pct']
         
         # Save to CSV
         df_new = pd.DataFrame([daily_record])
         
-        if os.path.exists(self.portfolio_history_file):
-            df_existing = pd.read_csv(self.portfolio_history_file)
-            # Check if today's record already exists
-            df_existing['date'] = pd.to_datetime(df_existing['date']).dt.date
-            today = datetime.now().date()
-            
-            if today in df_existing['date'].values:
-                # Remove existing today's record and append new one
-                df_existing = df_existing[df_existing['date'] != today]
-                df_combined = pd.concat([df_existing, df_new], ignore_index=True)
-                logger.info("Updated existing daily record")
+        try:
+            # Load existing data
+            if os.path.exists(self.portfolio_history_file):
+                df_existing = pd.read_csv(self.portfolio_history_file)
+                
+                # Check if today's record already exists
+                if today in df_existing['date'].values:
+                    # Update existing record
+                    df_existing.loc[df_existing['date'] == today] = daily_record.values()
+                    df_combined = df_existing
+                else:
+                    # Append new record
+                    df_combined = pd.concat([df_existing, df_new], ignore_index=True)
             else:
-                # Append new record
-                df_combined = pd.concat([df_existing, df_new], ignore_index=True)
-                logger.info("Added new daily record")
-        else:
-            df_combined = df_new
-            logger.info("Created new portfolio history file")
-        
-        # Sort by date to ensure chronological order
-        df_combined = df_combined.sort_values('date').reset_index(drop=True)
-        
-        df_combined.to_csv(self.portfolio_history_file, index=False)
+                df_combined = df_new
+            
+            df_combined.to_csv(self.portfolio_history_file, index=False)
+            logger.info(f"Daily snapshot saved for {today}")
+            
+        except Exception as e:
+            logger.error(f"Error saving daily snapshot: {e}")
         
         return daily_record
-    
+
+    def save_portfolio_state(self, state=None):
+        """Save current portfolio state"""
+        if state is None:
+            state = self.portfolio_state
+        
+        state['last_update'] = datetime.now().isoformat()
+        
+        with open(self.portfolio_state_file, 'w') as f:
+            json.dump(state, f, indent=2, default=str)
+        
+        logger.info("Portfolio state saved")
+
     def generate_daily_summary(self) -> Dict:
-        """Generate daily portfolio summary"""
+        """Generate daily summary for dashboard"""
         portfolio_value = self.portfolio_state['portfolio_value']
         initial_capital = self.config['portfolio']['initial_capital']
         
         summary = {
-            'date': datetime.now().date().isoformat(),
+            'date': datetime.now().strftime('%Y-%m-%d'),
             'portfolio_value': portfolio_value,
             'cash': self.portfolio_state['cash'],
             'total_return': portfolio_value - initial_capital,
@@ -330,51 +324,51 @@ class MidCapPortfolioTracker:
             summary['positions'][symbol] = {
                 'shares': position['shares'],
                 'entry_price': position['entry_price'],
-                'current_price': position.get('current_price', 0),
-                'market_value': position.get('market_value', 0),
-                'unrealized_pnl': position.get('unrealized_pnl', 0),
-                'unrealized_pnl_pct': position.get('unrealized_pnl_pct', 0),
+                'current_price': position['current_price'],
+                'market_value': position['market_value'],
+                'unrealized_pnl': position['unrealized_pnl'],
+                'unrealized_pnl_pct': position['unrealized_pnl_pct'],
                 'stop_level': position.get('stop_level', 0),
-                'stop_type': position.get('stop_type', 'initial'),
-                'days_held': (datetime.now().date() - datetime.fromisoformat(position['entry_date']).date()).days
+                'stop_type': position.get('stop_type', 'none'),
+                'catalyst': position['catalyst']
             }
         
         return summary
-    
-    def run_daily_update(self):
-        """Run complete daily portfolio update"""
+
+    def run_daily_update(self) -> Dict:
+        """Run complete daily update process"""
         logger.info("Starting daily portfolio update...")
         
-        # 1. Check for stop loss triggers
-        triggered_stops = self.check_stop_loss_triggers()
-        
-        # 2. Execute stop losses if any
-        for stop in triggered_stops:
-            self.execute_stop_loss(
-                stop['symbol'], 
-                stop['current_price'], 
-                stop['stop_type']
-            )
-        
-        # 3. Update portfolio value
-        portfolio_value = self.update_portfolio_value()
-        
-        # 4. Save daily snapshot
-        daily_record = self.save_daily_snapshot()
-        
-        # 5. Save portfolio state
-        self.save_portfolio_state()
-        
-        # 6. Generate summary
-        summary = self.generate_daily_summary()
-        
-        # 7. Save summary to docs for dashboard
-        with open('docs/latest.json', 'w') as f:
-            json.dump(summary, f, indent=2, default=str)
-        
-        logger.info(f"Daily update complete. Portfolio value: ${portfolio_value:.2f}")
-        
-        return summary
+        try:
+            # 1. Update stock prices
+            self.update_stock_prices()
+            
+            # 2. Update trailing stop levels
+            self.update_stop_levels()
+            
+            # 3. Update portfolio value
+            portfolio_value = self.update_portfolio_value()
+            
+            # 4. Save daily snapshot
+            daily_record = self.save_daily_snapshot()
+            
+            # 5. Save portfolio state
+            self.save_portfolio_state()
+            
+            # 6. Generate summary
+            summary = self.generate_daily_summary()
+            
+            # 7. Save summary to docs for dashboard
+            with open('docs/latest.json', 'w') as f:
+                json.dump(summary, f, indent=2, default=str)
+            
+            logger.info(f"Daily update complete. Portfolio value: ${portfolio_value:.2f}")
+            
+            return summary
+            
+        except Exception as e:
+            logger.error(f"Error during daily update: {e}")
+            raise
 
 def main():
     """Main execution function"""

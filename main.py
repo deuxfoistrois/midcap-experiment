@@ -13,6 +13,9 @@ from typing import Dict, List, Optional
 import logging
 from trailing_stops import TrailingStopManager
 
+# Create logs directory if it doesn't exist
+os.makedirs('logs', exist_ok=True)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -337,7 +340,7 @@ class MidCapPortfolioTracker:
 
     def run_daily_update(self) -> Dict:
         """Run complete daily update process"""
-        logger.info("Starting daily portfolio update...")
+        print("Starting daily portfolio update...")
         
         try:
             # 1. Update stock prices
@@ -362,12 +365,12 @@ class MidCapPortfolioTracker:
             with open('docs/latest.json', 'w') as f:
                 json.dump(summary, f, indent=2, default=str)
             
-            logger.info(f"Daily update complete. Portfolio value: ${portfolio_value:.2f}")
+            print(f"Daily update complete. Portfolio value: ${portfolio_value:.2f}")
             
             return summary
             
         except Exception as e:
-            logger.error(f"Error during daily update: {e}")
+            print(f"Error during daily update: {e}")
             raise
 
 def main():

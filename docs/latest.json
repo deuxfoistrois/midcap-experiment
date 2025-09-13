@@ -1,5 +1,5 @@
 {
-  "date": "2025-09-12",
+  "date": "2025-09-13",
   "portfolio_value": 1089.6870700000002,
   "cash": 24.52,
   "total_return": 89.68707000000018,
@@ -15,7 +15,7 @@
       "unrealized_pnl_pct": 0.046153846153846156,
       "stop_level": 28.275,
       "stop_type": "initial",
-      "days_held": 4
+      "days_held": 5
     },
     "STRL": {
       "shares": 0.874,
@@ -24,9 +24,9 @@
       "market_value": 274.04707,
       "unrealized_pnl": 24.08307000000002,
       "unrealized_pnl_pct": 0.09634615384615387,
-      "stop_level": 278.2208,
+      "stop_level": 290.8672,
       "stop_type": "trailing",
-      "days_held": 4
+      "days_held": 5
     },
     "OTEX": {
       "shares": 8,
@@ -35,9 +35,9 @@
       "market_value": 285.44,
       "unrealized_pnl": 41.52000000000001,
       "unrealized_pnl_pct": 0.1702197441784192,
-      "stop_level": 31.3984,
+      "stop_level": 32.8256,
       "stop_type": "trailing",
-      "days_held": 4
+      "days_held": 5
     },
     "ZION": {
       "shares": 4,
@@ -46,9 +46,9 @@
       "market_value": 233.68,
       "unrealized_pnl": 12.120000000000005,
       "unrealized_pnl_pct": 0.05470301498465429,
-      "stop_level": 51.409600000000005,
+      "stop_level": 53.7464,
       "stop_type": "trailing",
-      "days_held": 4
+      "days_held": 5
     }
   }
 }

@@ -26,7 +26,7 @@
     "stop_loss": {
       "type": "trailing",
       "initial_stop_pct": 0.13,
-      "trailing_stop_pct": 0.12,
+      "trailing_stop_pct": 0.08,
       "activation_gain_pct": 0.05,
       "grace_period_days": 1
     },

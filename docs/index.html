@@ -674,10 +674,10 @@
                 const pnlPct = (position.unrealized_pnl_pct || 0) * 100;
                 const pnlClass = pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
                 
-                // Get stop level from trailing stops data, fallback to position data
+                // Get stop level from trailing stops data - correct path is position_analysis
                 let stopLevel = 0;
-                if (trailingStopsData && trailingStopsData.positions && trailingStopsData.positions[symbol]) {
-                    stopLevel = trailingStopsData.positions[symbol].stop_level || 0;
+                if (trailingStopsData && trailingStopsData.position_analysis && trailingStopsData.position_analysis[symbol]) {
+                    stopLevel = trailingStopsData.position_analysis[symbol].stop_level || 0;
                 } else if (position.stop_level) {
                     stopLevel = position.stop_level;
                 }
@@ -685,12 +685,12 @@
                 row.innerHTML = `
                     <td><span class="symbol">${symbol}</span></td>
                     <td>${(position.shares || 0).toFixed(3)}</td>
-                    <td class="price">$${(position.entry_price || 0).toFixed(2)}</td>
-                    <td class="price">$${(position.current_price || 0).toFixed(2)}</td>
-                    <td class="price">$${(position.market_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                    <td class="${pnlClass}">$${pnl.toFixed(2)}</td>
-                    <td class="${pnlClass}">${pnlPct.toFixed(2)}%</td>
-                    <td class="stop-level">$${stopLevel.toFixed(2)}</td>
+                    <td class="price">${(position.entry_price || 0).toFixed(2)}</td>
+                    <td class="price">${(position.current_price || 0).toFixed(2)}</td>
+                    <td class="price">${(position.market_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    <td class="${pnlClass}">${pnl.toFixed(2)}</td>
+                    <td class="${pnlClass">${pnlPct.toFixed(2)}%</td>
+                    <td class="stop-level">${stopLevel.toFixed(2)}</td>
                     <td class="catalyst">${position.catalyst || 'N/A'}</td>
                 `;
                 

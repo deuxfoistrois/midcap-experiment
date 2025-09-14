@@ -13,6 +13,14 @@ from typing import Dict, List, Optional
 import logging
 from trailing_stops import TrailingStopManager
 
+# Alpaca integration
+try:
+    import alpaca_trade_api as tradeapi
+    ALPACA_AVAILABLE = True
+except ImportError:
+    ALPACA_AVAILABLE = False
+    print("Warning: alpaca-trade-api not installed. Using Alpha Vantage fallback.")
+
 # Create logs directory if it doesn't exist
 os.makedirs('logs', exist_ok=True)
 
@@ -27,6 +35,84 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+class AlpacaClient:
+    def __init__(self):
+        """Initialize Alpaca API client"""
+        if not ALPACA_AVAILABLE:
+            raise ImportError("alpaca-trade-api package not available")
+            
+        self.api_key_id = os.environ.get('ALPACA_API_KEY_ID')
+        self.secret_key = os.environ.get('ALPACA_SECRET_KEY')
+        self.base_url = os.environ.get('ALPACA_BASE_URL', 'https://paper-api.alpaca.markets')
+        
+        if not self.api_key_id or not self.secret_key:
+            raise ValueError("Alpaca API credentials not found in environment variables")
+        
+        self.api = tradeapi.REST(
+            key_id=self.api_key_id,
+            secret_key=self.secret_key,
+            base_url=self.base_url,
+            api_version='v2'
+        )
+        
+        logger.info(f"Alpaca client initialized for: {self.base_url}")
+
+    def test_connection(self) -> bool:
+        """Test API connection"""
+        try:
+            account = self.api.get_account()
+            logger.info(f"Connected to Alpaca - Account Status: {account.status}")
+            logger.info(f"Buying Power: ${float(account.buying_power):,.2f}")
+            return True
+        except Exception as e:
+            logger.error(f"Alpaca connection failed: {e}")
+            return False
+
+    def get_market_data(self, symbol: str) -> Optional[Dict]:
+        """Get comprehensive market data for a symbol"""
+        try:
+            # Get latest quote and trade
+            quote = self.api.get_latest_quote(symbol)
+            trade = self.api.get_latest_trade(symbol)
+            
+            if not trade or not trade.price:
+                return None
+            
+            current_price = float(trade.price)
+            
+            # Get previous close for change calculation
+            bars = self.api.get_bars(
+                symbol, 
+                tradeapi.TimeFrame.Day, 
+                limit=2,
+                adjustment='raw'
+            ).df
+            
+            previous_close = current_price
+            change = 0
+            change_percent = 0
+            
+            if len(bars) >= 2:
+                previous_close = float(bars.iloc[-2]['close'])
+                change = current_price - previous_close
+                change_percent = (change / previous_close) * 100 if previous_close > 0 else 0
+            
+            return {
+                'symbol': symbol,
+                'price': current_price,
+                'change': change,
+                'change_percent': f"{change_percent:.2f}%",
+                'volume': int(trade.size) if trade.size else 0,
+                'previous_close': previous_close,
+                'open': current_price,  # Simplified - would need daily bar for actual open
+                'high': current_price,  # Simplified - would need daily bar for actual high/low
+                'low': current_price
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting market data for {symbol}: {e}")
+            return None
+
 class MidCapPortfolioTracker:
     def __init__(self, config_file='config.json'):
         """Initialize the portfolio tracker"""
@@ -37,15 +123,33 @@ class MidCapPortfolioTracker:
         # Initialize trailing stop manager
         self.stop_manager = TrailingStopManager(config_file)
         
+        # Initialize data source (Alpaca or Alpha Vantage)
+        self.use_alpaca = False
+        self.alpaca_client = None
+        
+        # Try to initialize Alpaca client
+        if ALPACA_AVAILABLE:
+            try:
+                self.alpaca_client = AlpacaClient()
+                if self.alpaca_client.test_connection():
+                    self.use_alpaca = True
+                    logger.info("Using Alpaca Markets for data")
+                else:
+                    logger.warning("Alpaca connection failed, falling back to Alpha Vantage")
+            except Exception as e:
+                logger.warning(f"Could not initialize Alpaca client: {e}")
+        
+        # Fallback to Alpha Vantage if Alpaca not available
+        if not self.use_alpaca:
+            self.api_key = os.environ.get('ALPHAVANTAGE_API_KEY')
+            if not self.api_key:
+                raise ValueError("No data source available - need either Alpaca credentials or ALPHAVANTAGE_API_KEY")
+            logger.info("Using Alpha Vantage for data")
+        
         # File paths
         self.portfolio_state_file = 'state/portfolio_state.json'
         self.portfolio_history_file = 'data/portfolio_history.csv'
         self.benchmark_file = 'data/benchmark_history.csv'
-        
-        # API setup
-        self.api_key = os.environ.get('ALPHAVANTAGE_API_KEY')
-        if not self.api_key:
-            raise ValueError("ALPHAVANTAGE_API_KEY environment variable not set")
         
         # Initialize portfolio state
         self.portfolio_state = self.load_portfolio_state()
@@ -146,7 +250,13 @@ class MidCapPortfolioTracker:
         self.save_portfolio_state(initial_state)
         return initial_state
 
-    def get_stock_price(self, symbol: str) -> Optional[Dict]:
+    def get_stock_price_alpaca(self, symbol: str) -> Optional[Dict]:
+        """Get current stock price from Alpaca"""
+        if self.alpaca_client:
+            return self.alpaca_client.get_market_data(symbol)
+        return None
+
+    def get_stock_price_alpha_vantage(self, symbol: str) -> Optional[Dict]:
         """Get current stock price from Alpha Vantage"""
         try:
             url = "https://www.alphavantage.co/query"
@@ -181,9 +291,17 @@ class MidCapPortfolioTracker:
             logger.error(f"Error fetching price for {symbol}: {e}")
             return None
 
+    def get_stock_price(self, symbol: str) -> Optional[Dict]:
+        """Get current stock price from preferred data source"""
+        if self.use_alpaca:
+            return self.get_stock_price_alpaca(symbol)
+        else:
+            return self.get_stock_price_alpha_vantage(symbol)
+
     def update_stock_prices(self):
         """Update all stock prices"""
-        logger.info("Updating stock prices...")
+        data_source = "Alpaca" if self.use_alpaca else "Alpha Vantage"
+        logger.info(f"Updating stock prices from {data_source}...")
         
         for symbol in self.portfolio_state['positions']:
             price_data = self.get_stock_price(symbol)
@@ -279,7 +397,9 @@ class MidCapPortfolioTracker:
                 # Check if today's record already exists
                 if today in df_existing['date'].values:
                     # Update existing record
-                    df_existing.loc[df_existing['date'] == today] = daily_record.values()
+                    mask = df_existing['date'] == today
+                    for col in daily_record.keys():
+                        df_existing.loc[mask, col] = daily_record[col]
                     df_combined = df_existing
                 else:
                     # Append new record
@@ -319,6 +439,7 @@ class MidCapPortfolioTracker:
             'total_return': portfolio_value - initial_capital,
             'total_return_pct': (portfolio_value - initial_capital) / initial_capital,
             'positions_count': len(self.portfolio_state['positions']),
+            'data_source': 'Alpaca' if self.use_alpaca else 'Alpha Vantage',
             'positions': {}
         }
         
@@ -340,7 +461,8 @@ class MidCapPortfolioTracker:
 
     def run_daily_update(self) -> Dict:
         """Run complete daily update process"""
-        print("Starting daily portfolio update...")
+        data_source = "Alpaca" if self.use_alpaca else "Alpha Vantage"
+        print(f"Starting daily portfolio update using {data_source}...")
         
         try:
             # 1. Update stock prices
@@ -379,6 +501,7 @@ def main():
     summary = tracker.run_daily_update()
     
     print(f"\n=== Mid-Cap Portfolio Update ===")
+    print(f"Data Source: {summary['data_source']}")
     print(f"Date: {summary['date']}")
     print(f"Portfolio Value: ${summary['portfolio_value']:.2f}")
     print(f"Total Return: ${summary['total_return']:.2f} ({summary['total_return_pct']:.2%})")

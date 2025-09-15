@@ -32,3 +32,17 @@
 2025-09-15 00:11:38,124 - INFO - Portfolio value updated: $1089.69
 2025-09-15 00:11:38,132 - INFO - Daily snapshot saved for 2025-09-15
 2025-09-15 00:11:38,133 - INFO - Portfolio state saved
+2025-09-15 00:27:52,088 - INFO - Alpaca client initialized for: https://paper-api.alpaca.markets
+2025-09-15 00:27:52,492 - INFO - Connected to Alpaca - Account Status: ACTIVE
+2025-09-15 00:27:52,492 - INFO - Buying Power: $200,000.00
+2025-09-15 00:27:52,492 - INFO - Using Alpaca Markets for data
+2025-09-15 00:27:52,492 - INFO - Portfolio state loaded successfully
+2025-09-15 00:27:52,492 - INFO - Updating stock prices from Alpaca...
+2025-09-15 00:27:53,042 - INFO - Updated CRNX: $33.99 (P&L: 4.60%)
+2025-09-15 00:27:53,089 - INFO - Updated STRL: $313.84 (P&L: 9.73%)
+2025-09-15 00:27:53,136 - INFO - Updated OTEX: $35.69 (P&L: 17.05%)
+2025-09-15 00:27:53,183 - INFO - Updated ZION: $58.42 (P&L: 5.47%)
+2025-09-15 00:27:53,183 - INFO - Updating stop levels...
+2025-09-15 00:27:53,184 - INFO - Portfolio value updated: $1089.98
+2025-09-15 00:27:53,192 - INFO - Daily snapshot saved for 2025-09-15
+2025-09-15 00:27:53,192 - INFO - Portfolio state saved

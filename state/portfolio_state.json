@@ -8,15 +8,15 @@
       "cost_basis": 260.0,
       "catalyst": "FDA PDUFA September 25",
       "sector": "Healthcare",
-      "current_price": 34.0,
-      "market_value": 272.0,
-      "unrealized_pnl": 12.0,
-      "unrealized_pnl_pct": 0.046153846153846156,
+      "current_price": 33.995,
+      "market_value": 271.96,
+      "unrealized_pnl": 11.95999999999998,
+      "unrealized_pnl_pct": 0.04599999999999992,
       "highest_price": 36.5,
       "stop_level": 28.275,
       "stop_type": "initial",
-      "stop_distance": 0.1683823529411765,
-      "stop_distance_dollars": 5.725000000000001
+      "stop_distance": 0.16826003824091776,
+      "stop_distance_dollars": 5.719999999999999
     },
     "STRL": {
       "symbol": "STRL",
@@ -26,15 +26,15 @@
       "cost_basis": 250.0,
       "catalyst": "Q3 Earnings October",
       "sector": "Industrial",
-      "current_price": 313.555,
-      "market_value": 274.04707,
-      "unrealized_pnl": 24.083070000000006,
-      "unrealized_pnl_pct": 0.09634615384615387,
+      "current_price": 313.84,
+      "market_value": 274.29616,
+      "unrealized_pnl": 24.332159999999977,
+      "unrealized_pnl_pct": 0.09734265734265725,
       "highest_price": 316.16,
       "stop_level": 290.8672,
       "stop_type": "trailing",
-      "stop_distance": 0.07235668383537172,
-      "stop_distance_dollars": 22.68779999999998
+      "stop_distance": 0.0731990823349476,
+      "stop_distance_dollars": 22.97279999999995
     },
     "OTEX": {
       "symbol": "OTEX",
@@ -44,15 +44,15 @@
       "cost_basis": 243.92,
       "catalyst": "Q1 FY2025 Earnings Oct 31",
       "sector": "Technology",
-      "current_price": 35.68,
-      "market_value": 285.44,
-      "unrealized_pnl": 41.52000000000001,
-      "unrealized_pnl_pct": 0.1702197441784192,
-      "highest_price": 35.68,
-      "stop_level": 32.8256,
+      "current_price": 35.69,
+      "market_value": 285.52,
+      "unrealized_pnl": 41.599999999999994,
+      "unrealized_pnl_pct": 0.17054772056411938,
+      "highest_price": 35.69,
+      "stop_level": 32.8348,
       "stop_type": "trailing",
-      "stop_distance": 0.07999999999999995,
-      "stop_distance_dollars": 2.8543999999999983
+      "stop_distance": 0.0799999999999999,
+      "stop_distance_dollars": 2.8551999999999964
     },
     "ZION": {
       "symbol": "ZION",
@@ -74,7 +74,7 @@
     }
   },
   "cash": 24.52,
-  "portfolio_value": 1089.6870700000002,
-  "last_update": "2025-09-15T00:11:38.133019",
+  "portfolio_value": 1089.97616,
+  "last_update": "2025-09-15T00:27:53.192107",
   "experiment_start": "2025-09-08T00:00:00"
 }

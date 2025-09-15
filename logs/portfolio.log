@@ -8,3 +8,15 @@
 2025-09-13 03:05:20,717 - INFO - Portfolio value updated: $1089.69
 2025-09-13 03:05:20,720 - ERROR - Error saving daily snapshot: Must have equal len keys and value when setting with an iterable
 2025-09-13 03:05:20,721 - INFO - Portfolio state saved
+2025-09-15 00:02:28,277 - WARNING - Could not initialize Alpaca client: Alpaca API credentials not found in environment variables
+2025-09-15 00:02:28,277 - INFO - Using Alpha Vantage for data
+2025-09-15 00:02:28,277 - INFO - Portfolio state loaded successfully
+2025-09-15 00:02:28,278 - INFO - Updating stock prices from Alpha Vantage...
+2025-09-15 00:02:28,472 - INFO - Updated CRNX: $34.00 (P&L: 4.62%)
+2025-09-15 00:02:28,800 - INFO - Updated STRL: $313.56 (P&L: 9.63%)
+2025-09-15 00:02:28,947 - INFO - Updated OTEX: $35.68 (P&L: 17.02%)
+2025-09-15 00:02:29,103 - INFO - Updated ZION: $58.42 (P&L: 5.47%)
+2025-09-15 00:02:29,103 - INFO - Updating stop levels...
+2025-09-15 00:02:29,104 - INFO - Portfolio value updated: $1089.69
+2025-09-15 00:02:29,109 - INFO - Daily snapshot saved for 2025-09-15
+2025-09-15 00:02:29,109 - INFO - Portfolio state saved

@@ -1,10 +1,11 @@
 {
-  "date": "2025-09-13",
+  "date": "2025-09-15",
   "portfolio_value": 1089.6870700000002,
   "cash": 24.52,
   "total_return": 89.68707000000018,
   "total_return_pct": 0.08968707000000017,
   "positions_count": 4,
+  "data_source": "Alpha Vantage",
   "positions": {
     "CRNX": {
       "shares": 8,

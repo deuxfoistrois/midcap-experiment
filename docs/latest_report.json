@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-09-13T03:05:21.496961",
+  "timestamp": "2025-09-15T00:02:29.778041",
   "performance": {
     "current_value": 1089.6870700000002,
     "cash": 24.52,
@@ -8,10 +8,10 @@
     "daily_change": 0.0,
     "daily_change_pct": 0.0,
     "positions_count": 4,
-    "days_active": 5,
+    "days_active": 6,
     "best_day": 1.1287934097549135,
     "worst_day": 0.0,
-    "volatility": 0.4703750191962013
+    "volatility": 0.4634386670032544
   },
   "benchmark_comparison": {
     "MDY": {
@@ -52,7 +52,7 @@
       "stop_distance_pct": 16.838235294117652,
       "catalyst": "FDA PDUFA September 25",
       "sector": "Healthcare",
-      "days_held": 5
+      "days_held": 7
     },
     "STRL": {
       "shares": 0.874,
@@ -66,7 +66,7 @@
       "stop_distance_pct": 7.235668383537172,
       "catalyst": "Q3 Earnings October",
       "sector": "Industrial",
-      "days_held": 5
+      "days_held": 7
     },
     "OTEX": {
       "shares": 8,
@@ -80,7 +80,7 @@
       "stop_distance_pct": 7.999999999999995,
       "catalyst": "Q1 FY2025 Earnings Oct 31",
       "sector": "Technology",
-      "days_held": 5
+      "days_held": 7
     },
     "ZION": {
       "shares": 4,
@@ -94,11 +94,11 @@
       "stop_distance_pct": 8.0,
       "catalyst": "Q3 Earnings + Fed Cuts",
       "sector": "Financial",
-      "days_held": 5
+      "days_held": 7
     }
   },
   "summary": {
-    "experiment_day": 5,
+    "experiment_day": 6,
     "total_return_pct": 8.968707000000018,
     "daily_change_pct": 0.0,
     "positions_count": 4,

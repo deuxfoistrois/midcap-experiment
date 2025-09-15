@@ -20,3 +20,15 @@
 2025-09-15 00:02:29,104 - INFO - Portfolio value updated: $1089.69
 2025-09-15 00:02:29,109 - INFO - Daily snapshot saved for 2025-09-15
 2025-09-15 00:02:29,109 - INFO - Portfolio state saved
+2025-09-15 00:11:37,851 - WARNING - Could not initialize Alpaca client: Alpaca API credentials not found in environment variables
+2025-09-15 00:11:37,851 - INFO - Using Alpha Vantage for data
+2025-09-15 00:11:37,851 - INFO - Portfolio state loaded successfully
+2025-09-15 00:11:37,851 - INFO - Updating stock prices from Alpha Vantage...
+2025-09-15 00:11:37,939 - INFO - Updated CRNX: $34.00 (P&L: 4.62%)
+2025-09-15 00:11:37,999 - INFO - Updated STRL: $313.56 (P&L: 9.63%)
+2025-09-15 00:11:38,059 - INFO - Updated OTEX: $35.68 (P&L: 17.02%)
+2025-09-15 00:11:38,123 - INFO - Updated ZION: $58.42 (P&L: 5.47%)
+2025-09-15 00:11:38,123 - INFO - Updating stop levels...
+2025-09-15 00:11:38,124 - INFO - Portfolio value updated: $1089.69
+2025-09-15 00:11:38,132 - INFO - Daily snapshot saved for 2025-09-15
+2025-09-15 00:11:38,133 - INFO - Portfolio state saved

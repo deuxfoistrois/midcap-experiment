@@ -51,5 +51,9 @@
       "stop_type": "trailing",
       "catalyst": "Q3 Earnings + Fed Cuts"
     }
-  }
+  },
+  "alpaca_portfolio_value": 100000.0,
+  "alpaca_cash": 100000.0,
+  "alpaca_buying_power": 198930.18,
+  "account_status": "ACTIVE"
 }

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-09-15T00:44:10.886072",
+  "timestamp": "2025-09-15T00:53:22.430871",
   "portfolio_risk_metrics": {
     "weighted_avg_stop_distance": 0.10077770557917645,
     "total_amount_at_risk": 107.37422719999992,
@@ -61,7 +61,7 @@
       "distance_to_stop": 0.0731990823349476,
       "stop_type": "trailing",
       "severity": "LOW",
-      "timestamp": "2025-09-15T00:44:10.885999",
+      "timestamp": "2025-09-15T00:53:22.430745",
       "message": "STRL is 7.32% away from trailing stop at $290.87"
     },
     {
@@ -72,7 +72,7 @@
       "distance_to_stop": 0.0799999999999999,
       "stop_type": "trailing",
       "severity": "LOW",
-      "timestamp": "2025-09-15T00:44:10.886013",
+      "timestamp": "2025-09-15T00:53:22.430770",
       "message": "OTEX is 8.00% away from trailing stop at $32.83"
     },
     {
@@ -83,7 +83,7 @@
       "distance_to_stop": 0.08,
       "stop_type": "trailing",
       "severity": "LOW",
-      "timestamp": "2025-09-15T00:44:10.886018",
+      "timestamp": "2025-09-15T00:53:22.430779",
       "message": "ZION is 8.00% away from trailing stop at $53.75"
     }
   ],

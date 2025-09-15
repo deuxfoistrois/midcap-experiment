@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Mid-Cap Portfolio Tracker with Advanced Trailing Stop-Loss
-Professional portfolio management system
+Professional portfolio management system with Alpaca trading integration
 """
 
 import json
@@ -113,6 +113,239 @@ class AlpacaClient:
             logger.error(f"Error getting market data for {symbol}: {e}")
             return None
 
+    def get_positions(self) -> List[Dict]:
+        """Get all current positions"""
+        try:
+            positions = self.api.list_positions()
+            position_list = []
+            
+            for pos in positions:
+                position_list.append({
+                    'symbol': pos.symbol,
+                    'qty': float(pos.qty),
+                    'market_value': float(pos.market_value),
+                    'cost_basis': float(pos.cost_basis),
+                    'unrealized_pl': float(pos.unrealized_pl),
+                    'unrealized_plpc': float(pos.unrealized_plpc),
+                    'avg_entry_price': float(pos.avg_entry_price),
+                    'current_price': float(pos.current_price) if pos.current_price else 0,
+                    'side': pos.side
+                })
+            
+            return position_list
+            
+        except Exception as e:
+            logger.error(f"Error getting positions: {e}")
+            return []
+
+    def place_market_order(self, symbol: str, qty: float, side: str = 'buy') -> Optional[str]:
+        """Place a market order"""
+        try:
+            order = self.api.submit_order(
+                symbol=symbol,
+                qty=qty,
+                side=side,
+                type='market',
+                time_in_force='day'
+            )
+            
+            logger.info(f"Market order placed: {side.upper()} {qty} shares of {symbol}")
+            return order.id
+            
+        except Exception as e:
+            logger.error(f"Error placing market order for {symbol}: {e}")
+            return None
+
+    def place_stop_order(self, symbol: str, qty: float, stop_price: float) -> Optional[str]:
+        """Place a stop-loss order"""
+        try:
+            order = self.api.submit_order(
+                symbol=symbol,
+                qty=qty,
+                side='sell',
+                type='stop',
+                stop_price=stop_price,
+                time_in_force='day'
+            )
+            
+            logger.info(f"Stop order placed: SELL {qty} shares of {symbol} at stop ${stop_price:.2f}")
+            return order.id
+            
+        except Exception as e:
+            logger.error(f"Error placing stop order for {symbol}: {e}")
+            return None
+
+    def place_initial_portfolio_positions(self) -> Dict[str, str]:
+        """Place the initial midcap portfolio positions"""
+        initial_positions = {
+            "CRNX": {"shares": 8.0, "target_value": 260.0},
+            "STRL": {"shares": 0.874, "target_value": 250.0}, 
+            "OTEX": {"shares": 8.0, "target_value": 243.92},
+            "ZION": {"shares": 4.0, "target_value": 221.56}
+        }
+        
+        placed_orders = {}
+        
+        logger.info("Placing initial portfolio positions...")
+        
+        for symbol, data in initial_positions.items():
+            try:
+                # Place market order
+                order_id = self.place_market_order(symbol, data["shares"], 'buy')
+                
+                if order_id:
+                    placed_orders[symbol] = order_id
+                    logger.info(f"✓ {symbol}: Ordered {data['shares']} shares (target: ${data['target_value']:.2f})")
+                else:
+                    logger.error(f"✗ {symbol}: Order failed")
+                    
+            except Exception as e:
+                logger.error(f"Error placing initial order for {symbol}: {e}")
+        
+        logger.info(f"Initial positions placed: {len(placed_orders)}/{len(initial_positions)} successful")
+        return placed_orders
+
+    def sync_portfolio_positions(self) -> Dict[str, Dict]:
+        """Get current positions and sync with portfolio state"""
+        alpaca_positions = self.get_positions()
+        
+        portfolio_positions = {}
+        
+        for pos in alpaca_positions:
+            symbol = pos['symbol']
+            
+            # Only track our midcap positions
+            if symbol in ['CRNX', 'STRL', 'OTEX', 'ZION']:
+                portfolio_positions[symbol] = {
+                    'symbol': symbol,
+                    'shares': pos['qty'],
+                    'current_price': pos['current_price'],
+                    'market_value': pos['market_value'],
+                    'cost_basis': pos['cost_basis'],
+                    'avg_entry_price': pos['avg_entry_price'],
+                    'unrealized_pnl': pos['unrealized_pl'],
+                    'unrealized_pnl_pct': pos['unrealized_plpc'],
+                    'side': pos['side']
+                }
+                
+                logger.info(f"Synced {symbol}: {pos['qty']} shares @ ${pos['current_price']:.2f} (P&L: ${pos['unrealized_pl']:.2f})")
+        
+        return portfolio_positions
+
+    def update_stop_orders(self, positions_with_stops: Dict[str, Dict]) -> Dict[str, str]:
+        """Update stop-loss orders for positions"""
+        stop_orders_placed = {}
+        
+        # Cancel existing stop orders first
+        existing_orders = self.get_orders(status='open')
+        stop_orders = [order for order in existing_orders if order['type'] == 'stop']
+        
+        for order in stop_orders:
+            if order['symbol'] in positions_with_stops:
+                logger.info(f"Cancelling existing stop order for {order['symbol']}")
+                self.cancel_order(order['id'])
+        
+        # Place new stop orders
+        for symbol, position in positions_with_stops.items():
+            if position.get('stop_level') and position['shares'] > 0:
+                try:
+                    order_id = self.place_stop_order(
+                        symbol=symbol, 
+                        qty=position['shares'], 
+                        stop_price=position['stop_level']
+                    )
+                    
+                    if order_id:
+                        stop_orders_placed[symbol] = order_id
+                        logger.info(f"✓ {symbol}: Stop order at ${position['stop_level']:.2f}")
+                    
+                except Exception as e:
+                    logger.error(f"Error placing stop order for {symbol}: {e}")
+        
+        return stop_orders_placed
+
+    def liquidate_position(self, symbol: str) -> Optional[str]:
+        """Liquidate entire position for a symbol"""
+        try:
+            positions = self.get_positions()
+            position = next((pos for pos in positions if pos['symbol'] == symbol), None)
+            
+            if not position:
+                logger.warning(f"No position found for {symbol}")
+                return None
+            
+            if position['qty'] <= 0:
+                logger.warning(f"No shares to sell for {symbol}")
+                return None
+            
+            # Place market sell order for entire position
+            order_id = self.place_market_order(symbol, position['qty'], 'sell')
+            
+            if order_id:
+                logger.info(f"✓ Liquidated {symbol}: Sold {position['qty']} shares")
+            
+            return order_id
+            
+        except Exception as e:
+            logger.error(f"Error liquidating {symbol}: {e}")
+            return None
+
+    def get_orders(self, status: str = 'all') -> List[Dict]:
+        """Get order history"""
+        try:
+            orders = self.api.list_orders(status=status, limit=100)
+            order_list = []
+            
+            for order in orders:
+                order_list.append({
+                    'id': order.id,
+                    'symbol': order.symbol,
+                    'qty': float(order.qty),
+                    'side': order.side,
+                    'type': order.type,
+                    'status': order.status,
+                    'filled_qty': float(order.filled_qty) if order.filled_qty else 0,
+                    'filled_avg_price': float(order.filled_avg_price) if order.filled_avg_price else 0,
+                    'created_at': order.created_at,
+                    'updated_at': order.updated_at
+                })
+            
+            return order_list
+            
+        except Exception as e:
+            logger.error(f"Error getting orders: {e}")
+            return []
+
+    def cancel_order(self, order_id: str) -> bool:
+        """Cancel an order"""
+        try:
+            self.api.cancel_order(order_id)
+            logger.info(f"Order {order_id} cancelled")
+            return True
+        except Exception as e:
+            logger.error(f"Error cancelling order {order_id}: {e}")
+            return False
+
+    def get_account_info(self) -> Optional[Dict]:
+        """Get account information"""
+        try:
+            account = self.api.get_account()
+            return {
+                'account_id': account.id,
+                'status': account.status,
+                'buying_power': float(account.buying_power),
+                'cash': float(account.cash),
+                'portfolio_value': float(account.portfolio_value),
+                'equity': float(account.equity),
+                'last_equity': float(account.last_equity),
+                'currency': account.currency,
+                'trading_blocked': account.trading_blocked,
+                'account_blocked': account.account_blocked
+            }
+        except Exception as e:
+            logger.error(f"Error getting account info: {e}")
+            return None
+
 class MidCapPortfolioTracker:
     def __init__(self, config_file='config.json'):
         """Initialize the portfolio tracker"""
@@ -133,7 +366,7 @@ class MidCapPortfolioTracker:
                 self.alpaca_client = AlpacaClient()
                 if self.alpaca_client.test_connection():
                     self.use_alpaca = True
-                    logger.info("Using Alpaca Markets for data")
+                    logger.info("Using Alpaca Markets for data and trading")
                 else:
                     logger.warning("Alpaca connection failed, falling back to Alpha Vantage")
             except Exception as e:
@@ -250,6 +483,54 @@ class MidCapPortfolioTracker:
         self.save_portfolio_state(initial_state)
         return initial_state
 
+    def sync_with_alpaca_positions(self):
+        """Sync portfolio state with actual Alpaca positions and place initial orders if needed"""
+        if not self.use_alpaca or not self.alpaca_client:
+            return
+            
+        logger.info("Syncing with Alpaca positions...")
+        
+        try:
+            alpaca_positions = self.alpaca_client.sync_portfolio_positions()
+            
+            # Check if we need to place initial orders
+            target_symbols = set(['CRNX', 'STRL', 'OTEX', 'ZION'])
+            current_symbols = set(alpaca_positions.keys())
+            missing_symbols = target_symbols - current_symbols
+            
+            if missing_symbols:
+                logger.info(f"Missing positions in Alpaca: {missing_symbols}")
+                logger.info("Placing initial portfolio positions...")
+                orders = self.alpaca_client.place_initial_portfolio_positions()
+                logger.info(f"Placed {len(orders)} initial orders")
+                
+                # Refresh positions after placing orders
+                alpaca_positions = self.alpaca_client.sync_portfolio_positions()
+            
+            # Update our portfolio state with actual Alpaca data
+            for symbol in self.portfolio_state['positions']:
+                if symbol in alpaca_positions:
+                    alpaca_pos = alpaca_positions[symbol]
+                    our_pos = self.portfolio_state['positions'][symbol]
+                    
+                    # Update with actual Alpaca data
+                    our_pos['shares'] = alpaca_pos['shares']
+                    our_pos['current_price'] = alpaca_pos['current_price']
+                    our_pos['market_value'] = alpaca_pos['market_value']
+                    our_pos['unrealized_pnl'] = alpaca_pos['unrealized_pnl']
+                    our_pos['unrealized_pnl_pct'] = alpaca_pos['unrealized_pnl_pct']
+                    
+                    # Update highest price tracking
+                    if alpaca_pos['current_price'] > our_pos.get('highest_price', our_pos['entry_price']):
+                        our_pos['highest_price'] = alpaca_pos['current_price']
+                    
+                    logger.info(f"Synced {symbol}: {alpaca_pos['shares']} shares @ ${alpaca_pos['current_price']:.2f}")
+                else:
+                    logger.warning(f"{symbol} not found in Alpaca positions")
+        
+        except Exception as e:
+            logger.error(f"Error syncing with Alpaca positions: {e}")
+
     def get_stock_price_alpaca(self, symbol: str) -> Optional[Dict]:
         """Get current stock price from Alpaca"""
         if self.alpaca_client:
@@ -328,7 +609,7 @@ class MidCapPortfolioTracker:
                 logger.warning(f"Could not update price for {symbol}")
 
     def update_stop_levels(self):
-        """Update trailing stop levels using TrailingStopManager"""
+        """Update trailing stop levels and execute actual stop orders in Alpaca"""
         logger.info("Updating stop levels...")
         
         # Use the TrailingStopManager to update stop levels
@@ -342,6 +623,24 @@ class MidCapPortfolioTracker:
             logger.warning(f"Found {len(violations)} stop violations!")
             for violation in violations:
                 logger.warning(f"STOP TRIGGERED: {violation['symbol']} at ${violation['current_price']:.2f}, stop at ${violation['stop_level']:.2f}")
+                
+                # Execute actual sell order in Alpaca if using Alpaca
+                if self.use_alpaca and self.alpaca_client:
+                    logger.info(f"Executing stop-loss sell for {violation['symbol']}")
+                    order_id = self.alpaca_client.liquidate_position(violation['symbol'])
+                    if order_id:
+                        logger.info(f"Stop-loss executed: Order ID {order_id}")
+                    else:
+                        logger.error(f"Failed to execute stop-loss for {violation['symbol']}")
+        
+        # Update stop orders in Alpaca for all positions
+        if self.use_alpaca and self.alpaca_client:
+            positions_with_stops = {
+                symbol: pos for symbol, pos in self.portfolio_state['positions'].items() 
+                if pos.get('stop_level', 0) > 0
+            }
+            stop_orders = self.alpaca_client.update_stop_orders(positions_with_stops)
+            logger.info(f"Updated {len(stop_orders)} stop orders in Alpaca")
         
         # Generate and save stop report
         stop_report = self.stop_manager.generate_stop_report(self.portfolio_state['positions'])
@@ -459,31 +758,55 @@ class MidCapPortfolioTracker:
         
         return summary
 
+    def get_alpaca_account_summary(self) -> Dict:
+        """Get Alpaca account information for validation"""
+        if not self.use_alpaca or not self.alpaca_client:
+            return {}
+            
+        account_info = self.alpaca_client.get_account_info()
+        if account_info:
+            return {
+                'alpaca_portfolio_value': account_info['portfolio_value'],
+                'alpaca_cash': account_info['cash'],
+                'alpaca_buying_power': account_info['buying_power'],
+                'account_status': account_info['status']
+            }
+        return {}
+
     def run_daily_update(self) -> Dict:
         """Run complete daily update process"""
         data_source = "Alpaca" if self.use_alpaca else "Alpha Vantage"
         print(f"Starting daily portfolio update using {data_source}...")
         
         try:
-            # 1. Update stock prices
+            # 1. Sync with Alpaca positions first (places initial orders if needed)
+            if self.use_alpaca:
+                self.sync_with_alpaca_positions()
+            
+            # 2. Update stock prices
             self.update_stock_prices()
             
-            # 2. Update trailing stop levels
+            # 3. Update trailing stop levels (executes actual stops in Alpaca)
             self.update_stop_levels()
             
-            # 3. Update portfolio value
+            # 4. Update portfolio value
             portfolio_value = self.update_portfolio_value()
             
-            # 4. Save daily snapshot
+            # 5. Save daily snapshot
             daily_record = self.save_daily_snapshot()
             
-            # 5. Save portfolio state
+            # 6. Save portfolio state
             self.save_portfolio_state()
             
-            # 6. Generate summary
+            # 7. Generate summary
             summary = self.generate_daily_summary()
             
-            # 7. Save summary to docs for dashboard
+            # 8. Add Alpaca account info to summary
+            if self.use_alpaca:
+                alpaca_summary = self.get_alpaca_account_summary()
+                summary.update(alpaca_summary)
+            
+            # 9. Save summary to docs for dashboard
             with open('docs/latest.json', 'w') as f:
                 json.dump(summary, f, indent=2, default=str)
             
@@ -507,6 +830,10 @@ def main():
     print(f"Total Return: ${summary['total_return']:.2f} ({summary['total_return_pct']:.2%})")
     print(f"Cash: ${summary['cash']:.2f}")
     print(f"Positions: {summary['positions_count']}")
+    
+    if 'alpaca_portfolio_value' in summary:
+        print(f"Alpaca Account Value: ${summary['alpaca_portfolio_value']:.2f}")
+        print(f"Alpaca Status: {summary['account_status']}")
     
     if summary['positions']:
         print(f"\n=== Current Positions ===")

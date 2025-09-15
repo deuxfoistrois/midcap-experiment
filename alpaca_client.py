@@ -175,6 +175,9 @@ class AlpacaClient:
     def place_stop_order(self, symbol: str, qty: float, stop_price: float) -> Optional[str]:
         """Place a stop-loss order"""
         try:
+            # Round stop price to nearest cent (Alpaca requirement)
+            stop_price = round(stop_price, 2)
+            
             order = self.api.submit_order(
                 symbol=symbol,
                 qty=qty,
@@ -271,15 +274,18 @@ class AlpacaClient:
         for symbol, position in positions_with_stops.items():
             if position.get('stop_level') and position['shares'] > 0:
                 try:
+                    # Round stop price to nearest cent before placing order
+                    stop_price = round(position['stop_level'], 2)
+                    
                     order_id = self.place_stop_order(
                         symbol=symbol, 
                         qty=position['shares'], 
-                        stop_price=position['stop_level']
+                        stop_price=stop_price
                     )
                     
                     if order_id:
                         stop_orders_placed[symbol] = order_id
-                        print(f"✓ {symbol}: Stop order at ${position['stop_level']:.2f}")
+                        print(f"✓ {symbol}: Stop order at ${stop_price:.2f}")
                     
                 except Exception as e:
                     print(f"Error placing stop order for {symbol}: {e}")

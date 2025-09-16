@@ -1,79 +1,79 @@
 {
-  "timestamp": "2025-09-15T20:32:33.213470",
+  "timestamp": "2025-09-16T20:32:58.690240",
   "portfolio_risk_metrics": {
-    "weighted_avg_stop_distance": 0.1166881273185599,
-    "total_amount_at_risk": 126.38328639999996,
-    "portfolio_risk_pct": 0.1166881273185599,
+    "weighted_avg_stop_distance": 0.1061783463007944,
+    "total_amount_at_risk": 113.64808640000001,
+    "portfolio_risk_pct": 0.10617834630079438,
     "positions_with_stops": 4
   },
   "position_analysis": {
     "CRNX": {
-      "current_price": 33.78,
+      "current_price": 34.09,
       "stop_level": 28.275,
       "stop_type": "initial",
-      "distance_to_stop_pct": 0.16296625222024874,
-      "distance_to_stop_dollars": 5.505000000000003,
-      "gain_from_entry_pct": 0.03938461538461542,
+      "distance_to_stop_pct": 0.1705778820768555,
+      "distance_to_stop_dollars": 5.815000000000005,
+      "gain_from_entry_pct": 0.04892307692307703,
       "stop_protection_pct": -0.13000000000000003,
       "trailing_activated": false,
-      "days_held": 7
+      "days_held": 8
     },
     "STRL": {
-      "current_price": 323.92,
+      "current_price": 319.12,
       "stop_level": 298.00640000000004,
       "stop_type": "trailing",
-      "distance_to_stop_pct": 0.07999999999999992,
-      "distance_to_stop_dollars": 25.913599999999974,
-      "gain_from_entry_pct": 0.13258741258741263,
+      "distance_to_stop_pct": 0.06616194534971159,
+      "distance_to_stop_dollars": 21.113599999999963,
+      "gain_from_entry_pct": 0.11580419580419582,
       "stop_protection_pct": 0.041980419580419724,
       "trailing_activated": true,
-      "days_held": 7
+      "days_held": 8
     },
     "OTEX": {
-      "current_price": 37.675,
+      "current_price": 36.59,
       "stop_level": 34.661,
       "stop_type": "trailing",
-      "distance_to_stop_pct": 0.07999999999999989,
-      "distance_to_stop_dollars": 3.013999999999996,
-      "gain_from_entry_pct": 0.23565103312561492,
+      "distance_to_stop_pct": 0.05271932221918562,
+      "distance_to_stop_dollars": 1.929000000000002,
+      "gain_from_entry_pct": 0.2000655952771402,
       "stop_protection_pct": 0.13679895047556587,
       "trailing_activated": true,
-      "days_held": 7
+      "days_held": 8
     },
     "ZION": {
-      "current_price": 57.085,
+      "current_price": 56.5,
       "stop_level": 48.1893,
       "stop_type": "initial",
-      "distance_to_stop_pct": 0.1558325304370675,
-      "distance_to_stop_dollars": 8.895699999999998,
-      "gain_from_entry_pct": 0.030601191550821454,
+      "distance_to_stop_pct": 0.14709203539823004,
+      "distance_to_stop_dollars": 8.310699999999997,
+      "gain_from_entry_pct": 0.02003971836071492,
       "stop_protection_pct": -0.12999999999999995,
       "trailing_activated": false,
-      "days_held": 7
+      "days_held": 8
     }
   },
   "active_alerts": [
     {
       "symbol": "STRL",
       "alert_type": "STOP_WARNING_10PCT",
-      "current_price": 323.92,
+      "current_price": 319.12,
       "stop_level": 298.00640000000004,
-      "distance_to_stop": 0.07999999999999992,
+      "distance_to_stop": 0.06616194534971159,
       "stop_type": "trailing",
       "severity": "LOW",
-      "timestamp": "2025-09-15T20:32:33.213399",
-      "message": "STRL is 8.00% away from trailing stop at $298.01"
+      "timestamp": "2025-09-16T20:32:58.690150",
+      "message": "STRL is 6.62% away from trailing stop at $298.01"
     },
     {
       "symbol": "OTEX",
       "alert_type": "STOP_WARNING_10PCT",
-      "current_price": 37.675,
+      "current_price": 36.59,
       "stop_level": 34.661,
-      "distance_to_stop": 0.07999999999999989,
+      "distance_to_stop": 0.05271932221918562,
       "stop_type": "trailing",
       "severity": "LOW",
-      "timestamp": "2025-09-15T20:32:33.213416",
-      "message": "OTEX is 8.00% away from trailing stop at $34.66"
+      "timestamp": "2025-09-16T20:32:58.690173",
+      "message": "OTEX is 5.27% away from trailing stop at $34.66"
     }
   ],
   "historical_performance": {},

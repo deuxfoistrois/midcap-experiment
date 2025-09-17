@@ -153,3 +153,32 @@
 2025-09-16 20:32:58,690 - INFO - Portfolio value updated: $1094.87
 2025-09-16 20:32:58,695 - INFO - Daily snapshot saved for 2025-09-16
 2025-09-16 20:32:58,695 - INFO - Portfolio state saved
+2025-09-17 20:32:37,981 - INFO - Alpaca client initialized for: https://paper-api.alpaca.markets
+2025-09-17 20:32:38,646 - INFO - Connected to Alpaca - Account Status: ACTIVE
+2025-09-17 20:32:38,646 - INFO - Buying Power: $198,923.64
+2025-09-17 20:32:38,646 - INFO - Using Alpaca Markets for data and trading
+2025-09-17 20:32:38,646 - INFO - Portfolio state loaded successfully
+2025-09-17 20:32:38,646 - INFO - Syncing with Alpaca positions...
+2025-09-17 20:32:38,722 - INFO - Synced CRNX: 8.0 shares @ $34.20 (P&L: $1.20)
+2025-09-17 20:32:38,722 - INFO - Synced OTEX: 8.0 shares @ $36.66 (P&L: $0.04)
+2025-09-17 20:32:38,722 - INFO - Synced STRL: 0.874 shares @ $320.94 (P&L: $4.24)
+2025-09-17 20:32:38,722 - INFO - Synced ZION: 4.0 shares @ $57.50 (P&L: $-4.96)
+2025-09-17 20:32:38,722 - INFO - Synced CRNX: 8.0 shares @ $34.20
+2025-09-17 20:32:38,722 - INFO - Synced STRL: 0.874 shares @ $320.94
+2025-09-17 20:32:38,722 - INFO - Synced OTEX: 8.0 shares @ $36.66
+2025-09-17 20:32:38,722 - INFO - Synced ZION: 4.0 shares @ $57.50
+2025-09-17 20:32:38,722 - INFO - Updating stock prices from Alpaca...
+2025-09-17 20:32:39,163 - INFO - Updated CRNX: $34.13 (P&L: 5.03%)
+2025-09-17 20:32:39,385 - INFO - Updated STRL: $320.71 (P&L: 12.14%)
+2025-09-17 20:32:39,617 - INFO - Updated OTEX: $36.70 (P&L: 20.37%)
+2025-09-17 20:32:39,839 - INFO - Updated ZION: $57.52 (P&L: 3.85%)
+2025-09-17 20:32:39,839 - INFO - Updating stop levels...
+2025-09-17 20:32:40,128 - INFO - Stop order placed: SELL 8.0 shares of CRNX at stop $33.58
+2025-09-17 20:32:40,128 - INFO - ✓ CRNX: Stop order at $33.58
+2025-09-17 20:32:40,205 - ERROR - Error placing stop order for STRL: invalid stop_price 298.00640000000004. sub-penny increment does not fulfill minimum pricing criteria
+2025-09-17 20:32:40,334 - ERROR - Error placing stop order for OTEX: invalid stop_price 34.661. sub-penny increment does not fulfill minimum pricing criteria
+2025-09-17 20:32:40,411 - ERROR - Error placing stop order for ZION: invalid stop_price 48.1893. sub-penny increment does not fulfill minimum pricing criteria
+2025-09-17 20:32:40,411 - INFO - Updated 1 stop orders in Alpaca
+2025-09-17 20:32:40,412 - INFO - Portfolio value updated: $1101.58
+2025-09-17 20:32:40,417 - INFO - Daily snapshot saved for 2025-09-17
+2025-09-17 20:32:40,417 - INFO - Portfolio state saved

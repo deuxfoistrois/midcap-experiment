@@ -1,30 +1,30 @@
 {
-  "date": "2025-09-16",
-  "portfolio_value": 1094.87088,
+  "date": "2025-09-17",
+  "portfolio_value": 1101.58054,
   "cash": 24.52,
-  "total_return": 94.87087999999994,
-  "total_return_pct": 0.09487087999999995,
+  "total_return": 101.58053999999993,
+  "total_return_pct": 0.10158053999999993,
   "positions_count": 4,
   "data_source": "Alpaca",
   "positions": {
     "CRNX": {
       "shares": 8.0,
       "entry_price": 32.5,
-      "current_price": 34.09,
-      "market_value": 272.72,
-      "unrealized_pnl": 12.720000000000027,
-      "unrealized_pnl_pct": 0.04892307692307703,
-      "stop_level": 28.275,
-      "stop_type": "initial",
+      "current_price": 34.135,
+      "market_value": 273.08,
+      "unrealized_pnl": 13.079999999999984,
+      "unrealized_pnl_pct": 0.05030769230769225,
+      "stop_level": 33.58,
+      "stop_type": "trailing",
       "catalyst": "FDA PDUFA September 25"
     },
     "STRL": {
       "shares": 0.874,
       "entry_price": 286.0,
-      "current_price": 319.12,
-      "market_value": 278.91088,
-      "unrealized_pnl": 28.946880000000004,
-      "unrealized_pnl_pct": 0.11580419580419582,
+      "current_price": 320.71,
+      "market_value": 280.30053999999996,
+      "unrealized_pnl": 30.33653999999998,
+      "unrealized_pnl_pct": 0.1213636363636363,
       "stop_level": 298.00640000000004,
       "stop_type": "trailing",
       "catalyst": "Q3 Earnings October"
@@ -32,10 +32,10 @@
     "OTEX": {
       "shares": 8.0,
       "entry_price": 30.49,
-      "current_price": 36.59,
-      "market_value": 292.72,
-      "unrealized_pnl": 48.80000000000004,
-      "unrealized_pnl_pct": 0.2000655952771402,
+      "current_price": 36.7,
+      "market_value": 293.6,
+      "unrealized_pnl": 49.680000000000035,
+      "unrealized_pnl_pct": 0.20367333551984274,
       "stop_level": 34.661,
       "stop_type": "trailing",
       "catalyst": "Q1 FY2025 Earnings Oct 31"
@@ -43,17 +43,17 @@
     "ZION": {
       "shares": 4.0,
       "entry_price": 55.39,
-      "current_price": 56.5,
-      "market_value": 226.0,
-      "unrealized_pnl": 4.439999999999998,
-      "unrealized_pnl_pct": 0.02003971836071492,
+      "current_price": 57.52,
+      "market_value": 230.08,
+      "unrealized_pnl": 8.52000000000001,
+      "unrealized_pnl_pct": 0.03845459469218275,
       "stop_level": 48.1893,
       "stop_type": "initial",
       "catalyst": "Q3 Earnings + Fed Cuts"
     }
   },
-  "alpaca_portfolio_value": 99993.64,
+  "alpaca_portfolio_value": 100000.51,
   "alpaca_cash": 98923.13,
-  "alpaca_buying_power": 198916.77,
+  "alpaca_buying_power": 198923.64,
   "account_status": "ACTIVE"
 }

@@ -1,79 +1,90 @@
 {
-  "timestamp": "2025-09-16T20:32:58.690240",
+  "timestamp": "2025-09-17T20:32:40.411846",
   "portfolio_risk_metrics": {
-    "weighted_avg_stop_distance": 0.1061783463007944,
-    "total_amount_at_risk": 113.64808640000001,
-    "portfolio_risk_pct": 0.10617834630079438,
+    "weighted_avg_stop_distance": 0.0723429589203964,
+    "total_amount_at_risk": 77.91774639999996,
+    "portfolio_risk_pct": 0.0723429589203964,
     "positions_with_stops": 4
   },
   "position_analysis": {
     "CRNX": {
-      "current_price": 34.09,
-      "stop_level": 28.275,
-      "stop_type": "initial",
-      "distance_to_stop_pct": 0.1705778820768555,
-      "distance_to_stop_dollars": 5.815000000000005,
-      "gain_from_entry_pct": 0.04892307692307703,
-      "stop_protection_pct": -0.13000000000000003,
-      "trailing_activated": false,
-      "days_held": 8
+      "current_price": 34.135,
+      "stop_level": 33.58,
+      "stop_type": "trailing",
+      "distance_to_stop_pct": 0.016258971729895995,
+      "distance_to_stop_dollars": 0.5549999999999997,
+      "gain_from_entry_pct": 0.05030769230769225,
+      "stop_protection_pct": 0.033230769230769175,
+      "trailing_activated": true,
+      "days_held": 9
     },
     "STRL": {
-      "current_price": 319.12,
+      "current_price": 320.71,
       "stop_level": 298.00640000000004,
       "stop_type": "trailing",
-      "distance_to_stop_pct": 0.06616194534971159,
-      "distance_to_stop_dollars": 21.113599999999963,
-      "gain_from_entry_pct": 0.11580419580419582,
+      "distance_to_stop_pct": 0.07079168095787453,
+      "distance_to_stop_dollars": 22.703599999999938,
+      "gain_from_entry_pct": 0.1213636363636363,
       "stop_protection_pct": 0.041980419580419724,
       "trailing_activated": true,
-      "days_held": 8
+      "days_held": 9
     },
     "OTEX": {
-      "current_price": 36.59,
+      "current_price": 36.7,
       "stop_level": 34.661,
       "stop_type": "trailing",
-      "distance_to_stop_pct": 0.05271932221918562,
-      "distance_to_stop_dollars": 1.929000000000002,
-      "gain_from_entry_pct": 0.2000655952771402,
+      "distance_to_stop_pct": 0.055558583106267066,
+      "distance_to_stop_dollars": 2.0390000000000015,
+      "gain_from_entry_pct": 0.20367333551984274,
       "stop_protection_pct": 0.13679895047556587,
       "trailing_activated": true,
-      "days_held": 8
+      "days_held": 9
     },
     "ZION": {
-      "current_price": 56.5,
+      "current_price": 57.52,
       "stop_level": 48.1893,
       "stop_type": "initial",
-      "distance_to_stop_pct": 0.14709203539823004,
-      "distance_to_stop_dollars": 8.310699999999997,
-      "gain_from_entry_pct": 0.02003971836071492,
+      "distance_to_stop_pct": 0.16221662030598052,
+      "distance_to_stop_dollars": 9.3307,
+      "gain_from_entry_pct": 0.03845459469218275,
       "stop_protection_pct": -0.12999999999999995,
       "trailing_activated": false,
-      "days_held": 8
+      "days_held": 9
     }
   },
   "active_alerts": [
     {
+      "symbol": "CRNX",
+      "alert_type": "STOP_WARNING_2PCT",
+      "current_price": 34.135,
+      "stop_level": 33.58,
+      "distance_to_stop": 0.016258971729895995,
+      "stop_type": "trailing",
+      "severity": "HIGH",
+      "timestamp": "2025-09-17T20:32:40.411717",
+      "message": "CRNX is 1.63% away from trailing stop at $33.58"
+    },
+    {
       "symbol": "STRL",
       "alert_type": "STOP_WARNING_10PCT",
-      "current_price": 319.12,
+      "current_price": 320.71,
       "stop_level": 298.00640000000004,
-      "distance_to_stop": 0.06616194534971159,
+      "distance_to_stop": 0.07079168095787453,
       "stop_type": "trailing",
       "severity": "LOW",
-      "timestamp": "2025-09-16T20:32:58.690150",
-      "message": "STRL is 6.62% away from trailing stop at $298.01"
+      "timestamp": "2025-09-17T20:32:40.411736",
+      "message": "STRL is 7.08% away from trailing stop at $298.01"
     },
     {
       "symbol": "OTEX",
       "alert_type": "STOP_WARNING_10PCT",
-      "current_price": 36.59,
+      "current_price": 36.7,
       "stop_level": 34.661,
-      "distance_to_stop": 0.05271932221918562,
+      "distance_to_stop": 0.055558583106267066,
       "stop_type": "trailing",
       "severity": "LOW",
-      "timestamp": "2025-09-16T20:32:58.690173",
-      "message": "OTEX is 5.27% away from trailing stop at $34.66"
+      "timestamp": "2025-09-17T20:32:40.411740",
+      "message": "OTEX is 5.56% away from trailing stop at $34.66"
     }
   ],
   "historical_performance": {},

@@ -27,9 +27,9 @@ jobs:
     
     - name: Sync Portfolio Data
       env:
-        ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
-        ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
-        ALPACA_BASE_URL: ${{ secrets.ALPACA_BASE_URL }}
+        APCA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY }}
+        APCA_API_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+        APCA_API_BASE_URL: ${{ secrets.ALPACA_BASE_URL }}
       run: |
         python - << 'EOF'
         import alpaca_trade_api as tradeapi
@@ -37,13 +37,8 @@ jobs:
         from datetime import datetime
         import os
         
-        # Initialize Alpaca API
-        api = tradeapi.REST(
-            os.environ['ALPACA_API_KEY'],
-            os.environ['ALPACA_SECRET_KEY'], 
-            os.environ['ALPACA_BASE_URL'],
-            api_version='v2'
-        )
+        # Initialize Alpaca API - it will automatically use APCA_* environment variables
+        api = tradeapi.REST()
         
         def get_catalyst_for_symbol(symbol):
             catalysts = {
@@ -58,10 +53,26 @@ jobs:
         account = api.get_account()
         positions = api.list_positions()
         
-        # Calculate returns (you may need to adjust based on initial investment)
-        initial_investment = 1000.0  # Adjust this to your actual initial investment
-        total_return = float(account.portfolio_value) - initial_investment
-        total_return_pct = total_return / initial_investment if initial_investment > 0 else 0
+        # Read existing data to get initial investment and preserve other calculated values
+        try:
+            with open('docs/latest.json', 'r') as f:
+                existing_data = json.load(f)
+            
+            # Calculate initial investment from existing total return data
+            current_portfolio_value = float(account.portfolio_value)
+            existing_total_return = existing_data.get('total_return', 0)
+            initial_investment = current_portfolio_value - existing_total_return
+            
+            # Recalculate returns based on current portfolio value
+            total_return = current_portfolio_value - initial_investment
+            total_return_pct = total_return / initial_investment if initial_investment > 0 else 0
+            
+        except (FileNotFoundError, KeyError, json.JSONDecodeError):
+            # Fallback: use current portfolio value as baseline
+            print("Could not read existing data, using current portfolio value as baseline")
+            initial_investment = float(account.portfolio_value)
+            total_return = 0
+            total_return_pct = 0
         
         portfolio_data = {
             "date": datetime.now().strftime("%Y-%m-%d"),
@@ -98,6 +109,9 @@ jobs:
             json.dump(portfolio_data, f, indent=2)
         
         print("Portfolio data updated successfully")
+        print(f"Found {len(positions)} positions")
+        for pos in positions:
+            print(f"  {pos.symbol}: {pos.qty} shares")
         EOF
     
     - name: Commit changes

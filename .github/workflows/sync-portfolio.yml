@@ -1,0 +1,109 @@
+name: Sync Portfolio with Alpaca
+
+on:
+  schedule:
+    # Run every 15 minutes during market hours (9:30 AM - 4:00 PM ET)
+    - cron: '*/15 14-21 * * 1-5'  # Monday-Friday, 2:30 PM - 9:00 PM UTC (9:30 AM - 4:00 PM ET)
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  sync-portfolio:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        pip install alpaca-trade-api requests
+    
+    - name: Sync Portfolio Data
+      env:
+        ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+        ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+        ALPACA_BASE_URL: ${{ secrets.ALPACA_BASE_URL }}
+      run: |
+        python - << 'EOF'
+        import alpaca_trade_api as tradeapi
+        import json
+        from datetime import datetime
+        import os
+        
+        # Initialize Alpaca API
+        api = tradeapi.REST(
+            os.environ['ALPACA_API_KEY'],
+            os.environ['ALPACA_SECRET_KEY'], 
+            os.environ['ALPACA_BASE_URL'],
+            api_version='v2'
+        )
+        
+        def get_catalyst_for_symbol(symbol):
+            catalysts = {
+                "CRNX": "FDA PDUFA September 25",
+                "STRL": "Q3 Earnings October", 
+                "OTEX": "Q1 FY2025 Earnings Oct 31",
+                "ZION": "Q3 Earnings + Fed Cuts"
+            }
+            return catalysts.get(symbol, "N/A")
+        
+        # Get current portfolio
+        account = api.get_account()
+        positions = api.list_positions()
+        
+        # Calculate returns (you may need to adjust based on initial investment)
+        initial_investment = 1000.0  # Adjust this to your actual initial investment
+        total_return = float(account.portfolio_value) - initial_investment
+        total_return_pct = total_return / initial_investment if initial_investment > 0 else 0
+        
+        portfolio_data = {
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "portfolio_value": float(account.portfolio_value),
+            "cash": float(account.cash),
+            "total_return": total_return,
+            "total_return_pct": total_return_pct,
+            "positions_count": len(positions),
+            "data_source": "Alpaca",
+            "positions": {},
+            "alpaca_portfolio_value": float(account.portfolio_value),
+            "alpaca_cash": float(account.cash),
+            "alpaca_buying_power": float(account.buying_power),
+            "account_status": account.status
+        }
+        
+        # Add positions
+        for position in positions:
+            symbol = position.symbol
+            portfolio_data["positions"][symbol] = {
+                "shares": float(position.qty),
+                "entry_price": float(position.avg_cost_basis),
+                "current_price": float(position.current_price),
+                "market_value": float(position.market_value),
+                "unrealized_pnl": float(position.unrealized_pl),
+                "unrealized_pnl_pct": float(position.unrealized_plpc),
+                "stop_level": 0,
+                "stop_type": "trailing",
+                "catalyst": get_catalyst_for_symbol(symbol)
+            }
+        
+        # Write to file
+        with open('docs/latest.json', 'w') as f:
+            json.dump(portfolio_data, f, indent=2)
+        
+        print("Portfolio data updated successfully")
+        EOF
+    
+    - name: Commit changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add docs/latest.json
+        git diff --staged --quiet || git commit -m "Auto-update portfolio data from Alpaca"
+        git push

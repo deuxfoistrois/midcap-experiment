@@ -37,8 +37,21 @@ jobs:
         from datetime import datetime
         import os
         
+        # Debug: Check environment variables (without revealing actual values)
+        print("Checking environment variables:")
+        print(f"APCA_API_KEY_ID exists: {'APCA_API_KEY_ID' in os.environ}")
+        print(f"APCA_API_SECRET_KEY exists: {'APCA_API_SECRET_KEY' in os.environ}")
+        print(f"APCA_API_BASE_URL exists: {'APCA_API_BASE_URL' in os.environ}")
+        if 'APCA_API_BASE_URL' in os.environ:
+            print(f"Base URL: {os.environ['APCA_API_BASE_URL']}")
+        
         # Initialize Alpaca API - it will automatically use APCA_* environment variables
-        api = tradeapi.REST()
+        try:
+            api = tradeapi.REST()
+            print("Alpaca API client created successfully")
+        except Exception as e:
+            print(f"Error creating API client: {e}")
+            exit(1)
         
         def get_catalyst_for_symbol(symbol):
             catalysts = {
@@ -49,9 +62,20 @@ jobs:
             }
             return catalysts.get(symbol, "N/A")
         
+        # Test API connection
+        try:
+            print("Testing API connection...")
+            account = api.get_account()
+            print(f"Account status: {account.status}")
+            print("API connection successful")
+        except Exception as e:
+            print(f"API connection failed: {e}")
+            print("Please verify your Alpaca API credentials in GitHub secrets")
+            exit(1)
+        
         # Get current portfolio
-        account = api.get_account()
         positions = api.list_positions()
+        print(f"Found {len(positions)} positions in Alpaca account")
         
         # Read existing data to preserve order history and calculations
         try:

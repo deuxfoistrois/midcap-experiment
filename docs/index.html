@@ -352,30 +352,35 @@
 
         // Fetch and load dashboard data
         function loadDashboard() {
-            // Fetch both portfolio data and trailing stops data
+            // Fetch portfolio data from your GitHub repository
             Promise.all([
-                fetch('latest.json').then(response => response.json()),
-                fetch('trailing_stops_report.json').then(response => response.json()).catch(error => {
-                    console.log('trailing_stops_report.json not found, trying portfolio_state.json');
-                    return fetch('../state/portfolio_state.json').then(response => response.json());
+                fetch('https://raw.githubusercontent.com/deuxfoistrois/midcap-experiment/refs/heads/main/docs/latest.json').then(response => response.json()),
+                fetch('https://raw.githubusercontent.com/deuxfoistrois/midcap-experiment/refs/heads/main/docs/latest_report.json').then(response => response.json()).catch(error => {
+                    console.log('latest_report.json not found');
+                    return null;
                 })
             ])
-            .then(([portfolioData, trailingStopsData]) => {
+            .then(([portfolioData, reportData]) => {
                 updateStats(portfolioData);
                 updateCharts(portfolioData);
-                updatePositionsTable(portfolioData, trailingStopsData);
+                updatePositionsTable(portfolioData, reportData);
                 updateLastUpdate(portfolioData);
             })
             .catch(error => {
                 console.error('Error loading dashboard:', error);
-                // Fallback to just portfolio data
-                fetch('latest.json')
+                // Try fallback to just latest.json
+                fetch('https://raw.githubusercontent.com/deuxfoistrois/midcap-experiment/refs/heads/main/docs/latest.json')
                     .then(response => response.json())
                     .then(data => {
                         updateStats(data);
                         updateCharts(data);
                         updatePositionsTable(data, null);
                         updateLastUpdate(data);
+                    })
+                    .catch(fallbackError => {
+                        console.error('Fallback also failed:', fallbackError);
+                        // Show error message in UI
+                        document.getElementById('portfolioValue').textContent = 'Error loading data';
                     });
             });
         }
@@ -419,7 +424,7 @@
                 timelineChart.destroy();
             }
 
-            // ALWAYS fetch CSV data - no fallback
+            // Fetch CSV data from your GitHub repository
             fetch('https://raw.githubusercontent.com/deuxfoistrois/midcap-experiment/refs/heads/main/data/portfolio_history.csv')
                 .then(response => {
                     if (!response.ok) {

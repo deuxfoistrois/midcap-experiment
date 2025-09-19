@@ -211,3 +211,46 @@
 2025-09-18 20:33:19,981 - INFO - Portfolio value updated: $1148.96
 2025-09-18 20:33:19,986 - INFO - Daily snapshot saved for 2025-09-18
 2025-09-18 20:33:19,986 - INFO - Portfolio state saved
+2025-09-19 20:32:17,278 - INFO - Alpaca client initialized for: https://paper-api.alpaca.markets
+2025-09-19 20:32:17,644 - INFO - Connected to Alpaca - Account Status: ACTIVE
+2025-09-19 20:32:17,644 - INFO - Buying Power: $199,228.33
+2025-09-19 20:32:17,644 - INFO - Using Alpaca Markets for data and trading
+2025-09-19 20:32:17,644 - INFO - Portfolio state loaded successfully
+2025-09-19 20:32:17,644 - INFO - Syncing with Alpaca positions...
+2025-09-19 20:32:17,714 - INFO - Synced OTEX: 8.0 shares @ $36.97 (P&L: $2.52)
+2025-09-19 20:32:17,714 - INFO - Synced STRL: 0.874 shares @ $360.25 (P&L: $38.60)
+2025-09-19 20:32:17,714 - INFO - Synced ZION: 4.0 shares @ $58.70 (P&L: $-0.15)
+2025-09-19 20:32:17,714 - INFO - Missing positions in Alpaca: {'CRNX'}
+2025-09-19 20:32:17,714 - INFO - Placing initial portfolio positions...
+2025-09-19 20:32:17,714 - INFO - Placing initial portfolio positions...
+2025-09-19 20:32:17,780 - INFO - Market order placed: BUY 8.0 shares of CRNX
+2025-09-19 20:32:17,780 - INFO - ✓ CRNX: Ordered 8.0 shares (target: $260.00)
+2025-09-19 20:32:17,847 - INFO - Market order placed: BUY 0.874 shares of STRL
+2025-09-19 20:32:17,848 - INFO - ✓ STRL: Ordered 0.874 shares (target: $250.00)
+2025-09-19 20:32:17,863 - INFO - Market order placed: BUY 8.0 shares of OTEX
+2025-09-19 20:32:17,863 - INFO - ✓ OTEX: Ordered 8.0 shares (target: $243.92)
+2025-09-19 20:32:17,921 - INFO - Market order placed: BUY 4.0 shares of ZION
+2025-09-19 20:32:17,921 - INFO - ✓ ZION: Ordered 4.0 shares (target: $221.56)
+2025-09-19 20:32:17,921 - INFO - Initial positions placed: 4/4 successful
+2025-09-19 20:32:17,921 - INFO - Placed 4 initial orders
+2025-09-19 20:32:17,934 - INFO - Synced OTEX: 8.0 shares @ $36.97 (P&L: $2.52)
+2025-09-19 20:32:17,934 - INFO - Synced STRL: 0.874 shares @ $360.25 (P&L: $38.60)
+2025-09-19 20:32:17,934 - INFO - Synced ZION: 4.0 shares @ $58.70 (P&L: $-0.15)
+2025-09-19 20:32:17,934 - WARNING - CRNX not found in Alpaca positions
+2025-09-19 20:32:17,934 - INFO - Synced STRL: 0.874 shares @ $360.25
+2025-09-19 20:32:17,934 - INFO - Synced OTEX: 8.0 shares @ $36.97
+2025-09-19 20:32:17,934 - INFO - Synced ZION: 4.0 shares @ $58.70
+2025-09-19 20:32:17,934 - INFO - Updating stock prices from Alpaca...
+2025-09-19 20:32:18,172 - INFO - Updated CRNX: $33.91 (P&L: 4.32%)
+2025-09-19 20:32:18,207 - INFO - Updated STRL: $360.33 (P&L: 25.99%)
+2025-09-19 20:32:18,243 - INFO - Updated OTEX: $36.98 (P&L: 21.29%)
+2025-09-19 20:32:18,282 - INFO - Updated ZION: $58.67 (P&L: 5.92%)
+2025-09-19 20:32:18,282 - INFO - Updating stop levels...
+2025-09-19 20:32:18,373 - ERROR - Error placing stop order for CRNX: invalid stop_price 28.275. sub-penny increment does not fulfill minimum pricing criteria
+2025-09-19 20:32:18,386 - ERROR - Error placing stop order for STRL: invalid stop_price 331.5036. sub-penny increment does not fulfill minimum pricing criteria
+2025-09-19 20:32:18,399 - ERROR - Error placing stop order for OTEX: invalid stop_price 34.661. sub-penny increment does not fulfill minimum pricing criteria
+2025-09-19 20:32:18,416 - ERROR - Error placing stop order for ZION: invalid stop_price 54.4548. sub-penny increment does not fulfill minimum pricing criteria
+2025-09-19 20:32:18,416 - INFO - Updated 0 stop orders in Alpaca
+2025-09-19 20:32:18,416 - INFO - Portfolio value updated: $1141.21
+2025-09-19 20:32:18,421 - INFO - Daily snapshot saved for 2025-09-19
+2025-09-19 20:32:18,422 - INFO - Portfolio state saved

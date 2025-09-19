@@ -52,8 +52,14 @@
       "catalyst": "Q3 Earnings + Fed Cuts"
     }
   },
+<<<<<<< Updated upstream
   "alpaca_portfolio_value": 100036.88,
   "alpaca_cash": 99191.45,
   "alpaca_buying_power": 198093.99,
+=======
+  "alpaca_portfolio_value": 100037.47,
+  "alpaca_cash": 99191.45,
+  "alpaca_buying_power": 196954.64,
+>>>>>>> Stashed changes
   "account_status": "ACTIVE"
 }

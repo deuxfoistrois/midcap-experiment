@@ -211,6 +211,7 @@
 2025-09-18 20:33:19,981 - INFO - Portfolio value updated: $1148.96
 2025-09-18 20:33:19,986 - INFO - Daily snapshot saved for 2025-09-18
 2025-09-18 20:33:19,986 - INFO - Portfolio state saved
+<<<<<<< Updated upstream
 2025-09-19 20:32:17,278 - INFO - Alpaca client initialized for: https://paper-api.alpaca.markets
 2025-09-19 20:32:17,644 - INFO - Connected to Alpaca - Account Status: ACTIVE
 2025-09-19 20:32:17,644 - INFO - Buying Power: $199,228.33
@@ -254,3 +255,48 @@
 2025-09-19 20:32:18,416 - INFO - Portfolio value updated: $1141.21
 2025-09-19 20:32:18,421 - INFO - Daily snapshot saved for 2025-09-19
 2025-09-19 20:32:18,422 - INFO - Portfolio state saved
+=======
+2025-09-19 22:08:54,944 - INFO - Alpaca client initialized for: https://paper-api.alpaca.markets
+2025-09-19 22:08:55,041 - INFO - Connected to Alpaca - Account Status: ACTIVE
+2025-09-19 22:08:55,041 - INFO - Buying Power: $198,091.78
+2025-09-19 22:08:55,041 - INFO - Using Alpaca Markets for data and trading
+2025-09-19 22:08:55,041 - INFO - Portfolio state loaded successfully
+2025-09-19 22:08:55,041 - INFO - Syncing with Alpaca positions...
+2025-09-19 22:08:55,096 - INFO - Synced OTEX: 8.0 shares @ $36.97 (P&L: $2.52)
+2025-09-19 22:08:55,096 - INFO - Synced STRL: 0.874 shares @ $360.25 (P&L: $38.60)
+2025-09-19 22:08:55,096 - INFO - Synced ZION: 4.0 shares @ $58.85 (P&L: $0.44)
+2025-09-19 22:08:55,096 - INFO - Missing positions in Alpaca: {'CRNX'}
+2025-09-19 22:08:55,096 - INFO - Placing initial portfolio positions...
+2025-09-19 22:08:55,096 - INFO - Placing initial portfolio positions...
+2025-09-19 22:08:55,114 - INFO - Market order placed: BUY 8.0 shares of CRNX
+2025-09-19 22:08:55,114 - INFO - ✓ CRNX: Ordered 8.0 shares (target: $260.00)
+2025-09-19 22:08:55,129 - INFO - Market order placed: BUY 0.874 shares of STRL
+2025-09-19 22:08:55,129 - INFO - ✓ STRL: Ordered 0.874 shares (target: $250.00)
+2025-09-19 22:08:55,201 - INFO - Market order placed: BUY 8.0 shares of OTEX
+2025-09-19 22:08:55,201 - INFO - ✓ OTEX: Ordered 8.0 shares (target: $243.92)
+2025-09-19 22:08:55,231 - INFO - Market order placed: BUY 4.0 shares of ZION
+2025-09-19 22:08:55,232 - INFO - ✓ ZION: Ordered 4.0 shares (target: $221.56)
+2025-09-19 22:08:55,232 - INFO - Initial positions placed: 4/4 successful
+2025-09-19 22:08:55,232 - INFO - Placed 4 initial orders
+2025-09-19 22:08:55,293 - INFO - Synced OTEX: 8.0 shares @ $36.97 (P&L: $2.52)
+2025-09-19 22:08:55,293 - INFO - Synced STRL: 0.874 shares @ $360.25 (P&L: $38.60)
+2025-09-19 22:08:55,293 - INFO - Synced ZION: 4.0 shares @ $58.85 (P&L: $0.44)
+2025-09-19 22:08:55,293 - WARNING - CRNX not found in Alpaca positions
+2025-09-19 22:08:55,293 - INFO - Synced STRL: 0.874 shares @ $360.25
+2025-09-19 22:08:55,293 - INFO - Synced OTEX: 8.0 shares @ $36.97
+2025-09-19 22:08:55,293 - INFO - Synced ZION: 4.0 shares @ $58.85
+2025-09-19 22:08:55,294 - INFO - Updating stock prices from Alpaca...
+2025-09-19 22:08:55,421 - INFO - Updated CRNX: $33.91 (P&L: 4.32%)
+2025-09-19 22:08:55,485 - INFO - Updated STRL: $360.33 (P&L: 25.99%)
+2025-09-19 22:08:55,547 - INFO - Updated OTEX: $36.98 (P&L: 21.29%)
+2025-09-19 22:08:55,607 - INFO - Updated ZION: $58.67 (P&L: 5.92%)
+2025-09-19 22:08:55,607 - INFO - Updating stop levels...
+2025-09-19 22:08:55,691 - ERROR - Error placing stop order for CRNX: invalid stop_price 28.275. sub-penny increment does not fulfill minimum pricing criteria
+2025-09-19 22:08:55,744 - ERROR - Error placing stop order for STRL: invalid stop_price 331.5036. sub-penny increment does not fulfill minimum pricing criteria
+2025-09-19 22:08:55,756 - ERROR - Error placing stop order for OTEX: invalid stop_price 34.661. sub-penny increment does not fulfill minimum pricing criteria
+2025-09-19 22:08:55,769 - ERROR - Error placing stop order for ZION: invalid stop_price 54.4548. sub-penny increment does not fulfill minimum pricing criteria
+2025-09-19 22:08:55,769 - INFO - Updated 0 stop orders in Alpaca
+2025-09-19 22:08:55,770 - INFO - Portfolio value updated: $1141.21
+2025-09-19 22:08:55,775 - INFO - Daily snapshot saved for 2025-09-19
+2025-09-19 22:08:55,775 - INFO - Portfolio state saved
+>>>>>>> Stashed changes

@@ -53,38 +53,46 @@ jobs:
         account = api.get_account()
         positions = api.list_positions()
         
-        # Read existing data to get initial investment and preserve other calculated values
+        # Read existing data to preserve order history and calculations
         try:
             with open('docs/latest.json', 'r') as f:
                 existing_data = json.load(f)
             
-            # Calculate initial investment from existing total return data
-            current_portfolio_value = float(account.portfolio_value)
-            existing_total_return = existing_data.get('total_return', 0)
-            initial_investment = current_portfolio_value - existing_total_return
+            # Preserve the baseline investment amount and previous calculations
+            baseline_investment = existing_data.get('total_invested', 1000.0)
             
-            # Recalculate returns based on current portfolio value
-            total_return = current_portfolio_value - initial_investment
-            total_return_pct = total_return / initial_investment if initial_investment > 0 else 0
+            # Get current Alpaca portfolio state
+            current_portfolio_value = float(account.portfolio_value)
+            current_cash = float(account.cash)
+            current_positions_value = sum(float(pos.market_value) for pos in positions)
+            
+            # Calculate returns based on original investment
+            total_return = current_portfolio_value - baseline_investment
+            total_return_pct = total_return / baseline_investment if baseline_investment > 0 else 0
             
         except (FileNotFoundError, KeyError, json.JSONDecodeError):
-            # Fallback: use current portfolio value as baseline
-            print("Could not read existing data, using current portfolio value as baseline")
-            initial_investment = float(account.portfolio_value)
+            # Fallback: analyze the situation from current state
+            print("Could not read existing data, inferring from current state")
+            current_portfolio_value = float(account.portfolio_value)
+            current_cash = float(account.cash)
+            current_positions_value = sum(float(pos.market_value) for pos in positions)
+            baseline_investment = current_portfolio_value  # Assume this is starting point
             total_return = 0
             total_return_pct = 0
         
         portfolio_data = {
             "date": datetime.now().strftime("%Y-%m-%d"),
-            "portfolio_value": float(account.portfolio_value),
-            "cash": float(account.cash),
+            "portfolio_value": current_portfolio_value,
+            "cash": current_cash,
+            "positions_value": current_positions_value,
+            "total_invested": baseline_investment,
             "total_return": total_return,
             "total_return_pct": total_return_pct,
             "positions_count": len(positions),
             "data_source": "Alpaca",
             "positions": {},
-            "alpaca_portfolio_value": float(account.portfolio_value),
-            "alpaca_cash": float(account.cash),
+            "alpaca_portfolio_value": current_portfolio_value,
+            "alpaca_cash": current_cash,
             "alpaca_buying_power": float(account.buying_power),
             "account_status": account.status
         }

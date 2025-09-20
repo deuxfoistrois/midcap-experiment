@@ -82,27 +82,55 @@ jobs:
         if crnx_missing:
             print("🚨 CRNX STOP LOSS DETECTED - Position not found in account")
         
-        # Calculate portfolio metrics based on EXPERIMENT positions only, not full Alpaca account
-        experiment_symbols = ['OTEX', 'STRL', 'ZION', 'CRNX']  # Your midcap experiment stocks
+        # Get existing portfolio data to understand your experiment parameters
+        try:
+            with open('docs/latest.json', 'r') as f:
+                existing = json.load(f)
+            
+            # Extract experiment parameters from existing data (NO HARDCODING)
+            experiment_symbols = list(existing.get('positions', {}).keys())
+            baseline = existing.get('total_invested', 1000.0)
+            existing_cash = existing.get('cash', 0)
+            existing_positions_count = existing.get('positions_count', 0)
+            
+        except Exception as e:
+            print(f"Could not read existing data: {e}")
+            # Emergency fallback - but still try to be dynamic
+            experiment_symbols = [pos['symbol'] for pos in positions]  # Use whatever is in Alpaca
+            baseline = 1000.0  # Only fallback value
+            existing_cash = 0
+            existing_positions_count = 0
+        
+        print(f"Experiment symbols: {experiment_symbols}")
+        print(f"Baseline investment: ${baseline}")
+        
+        # Calculate current experiment positions value
         experiment_positions_value = sum(
             float(pos['market_value']) for pos in positions 
             if pos['symbol'] in experiment_symbols
         )
         
-        # Get full Alpaca account values for reference
-        full_portfolio_value = float(account['portfolio_value'])
-        full_cash = float(account['cash'])
+        current_positions_count = len([p for p in positions if p['symbol'] in experiment_symbols])
         
-        # Your experiment cash (separate from Alpaca's $100k paper money)
-        experiment_cash = 58.06  # This should be updated based on your actual experiment cash
+        # Calculate experiment cash dynamically
+        if existing_positions_count > current_positions_count:
+            # Positions were sold - calculate cash from the difference
+            print(f"Positions reduced from {existing_positions_count} to {current_positions_count} - calculating cash from sales")
+            
+            # Get the total value that should exist based on existing data
+            existing_total = existing.get('portfolio_value', baseline)
+            experiment_cash = existing_total - experiment_positions_value
+            
+        else:
+            # No sales detected, use existing cash
+            experiment_cash = existing_cash
         
-        # Calculate experiment portfolio value (NOT full Alpaca account)
+        # Calculate experiment portfolio value
         experiment_portfolio_value = experiment_positions_value + experiment_cash
         
-        # Calculate returns based on your $1000 experiment, not Alpaca's $100k
-        baseline = 1000.0  # Your actual experiment starting amount
+        # Calculate returns
         total_return = experiment_portfolio_value - baseline
-        return_pct = total_return / baseline
+        return_pct = total_return / baseline if baseline > 0 else 0
         
         print(f"Experiment Portfolio (positions only): ${experiment_positions_value:,.2f}")
         print(f"Experiment Cash: ${experiment_cash:,.2f}")

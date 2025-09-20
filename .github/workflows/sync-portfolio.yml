@@ -1,259 +1,245 @@
-#!/usr/bin/env python3
-"""
-Portfolio Sync Script - Reconciles repository data with Alpaca account
-Automatically detects and handles stop loss executions
-"""
+name: Portfolio Sync with Alpaca
 
-import os
-import json
-import requests
-import pandas as pd
-from datetime import datetime
+on:
+  schedule:
+    - cron: '*/15 14-21 * * 1-5'  # Every 15 minutes during market hours
+  workflow_dispatch:
 
-def get_alpaca_data():
-    """Fetch current positions and account data from Alpaca"""
-    api_key = os.environ.get('ALPACA_API_KEY')
-    secret_key = os.environ.get('ALPACA_SECRET_KEY')
-    base_url = os.environ.get('ALPACA_BASE_URL', 'https://paper-api.alpaca.markets')
-    
-    if not api_key or not secret_key:
-        raise ValueError("Missing Alpaca API credentials")
-    
-    headers = {
-        "APCA-API-KEY-ID": api_key,
-        "APCA-API-SECRET-KEY": secret_key,
-        "Content-Type": "application/json"
-    }
-    
-    print(f"Connecting to Alpaca: {base_url}")
-    
-    # Get account info
-    account_response = requests.get(f"{base_url}/v2/account", headers=headers)
-    if account_response.status_code != 200:
-        raise Exception(f"Account API failed: {account_response.status_code} - {account_response.text}")
-    
-    account = account_response.json()
-    print(f"Connected! Account status: {account['status']}")
-    
-    # Get positions
-    positions_response = requests.get(f"{base_url}/v2/positions", headers=headers)
-    if positions_response.status_code != 200:
-        raise Exception(f"Positions API failed: {positions_response.status_code}")
-    
-    positions = positions_response.json()
-    current_symbols = [pos['symbol'] for pos in positions]
-    print(f"Current positions in Alpaca: {current_symbols}")
-    
-    return account, positions
+permissions:
+  contents: write
 
-def load_existing_portfolio():
-    """Load current portfolio state from repository"""
-    try:
-        with open('docs/latest.json', 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        print("No existing portfolio found")
-        return None
+jobs:
+  sync-portfolio:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        pip install pandas requests
+    
+    - name: Sync portfolio with Alpaca
+      env:
+        ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+        ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+        ALPACA_BASE_URL: ${{ secrets.ALPACA_BASE_URL }}
+      run: |
+        python3 << 'EOF'
+        import os
+        import json
+        import requests
+        import pandas as pd
+        from datetime import datetime
 
-def process_alpaca_positions(positions, existing_portfolio):
-    """Convert Alpaca positions to portfolio format"""
-    experiment_positions = {}
-    total_positions_value = 0
-    
-    # Get existing position data for context
-    existing_positions = existing_portfolio.get('positions', {}) if existing_portfolio else {}
-    
-    for pos in positions:
-        symbol = pos['symbol']
-        
-        # Only process positions that were part of the original experiment
-        if symbol in ['CRNX', 'STRL', 'OTEX', 'ZION']:
-            # Extract position data with fallbacks for different field names
-            shares = float(pos['qty'])
-            market_value = float(pos['market_value'])
-            current_price = market_value / shares if shares > 0 else 0
-            
-            # Try different field names for cost basis
-            cost_basis = None
-            entry_price = None
-            
-            for field in ['cost_basis', 'avg_cost_basis']:
-                if field in pos and pos[field]:
-                    cost_basis = float(pos[field])
-                    break
-            
-            for field in ['avg_entry_price', 'entry_price']:
-                if field in pos and pos[field]:
-                    entry_price = float(pos[field])
-                    break
-            
-            # Calculate unrealized P&L
-            unrealized_pnl = float(pos.get('unrealized_pl', 0))
-            unrealized_pnl_pct = float(pos.get('unrealized_plpc', 0))
-            
-            # Get catalyst info from existing data
-            catalyst = "N/A"
-            if existing_positions and symbol in existing_positions:
-                catalyst = existing_positions[symbol].get('catalyst', 'N/A')
-            
-            position_data = {
-                "symbol": symbol,
-                "shares": shares,
-                "entry_price": entry_price or current_price,
-                "current_price": current_price,
-                "market_value": market_value,
-                "cost_basis": cost_basis or (shares * (entry_price or current_price)),
-                "unrealized_pnl": unrealized_pnl,
-                "unrealized_pnl_pct": unrealized_pnl_pct,
-                "catalyst": catalyst,
-                "last_update": datetime.now().isoformat()
-            }
-            
-            experiment_positions[symbol] = position_data
-            total_positions_value += market_value
-            
-            print(f"✓ {symbol}: ${market_value:.2f} ({unrealized_pnl_pct:.2%})")
-    
-    return experiment_positions, total_positions_value
-
-def calculate_experiment_financials(positions_value, existing_portfolio, sold_positions):
-    """Calculate experiment cash and returns"""
-    
-    if not existing_portfolio:
-        # If no existing data, use defaults
-        baseline_investment = 1000.0
-        experiment_cash = 0.0
-    else:
-        # Read existing baseline and cash
-        baseline_investment = existing_portfolio.get('total_invested', 1000.0)
-        existing_cash = existing_portfolio.get('cash', 0.0)
-        existing_positions = existing_portfolio.get('positions', {})
-        
-        # Calculate cash adjustments for sold positions
-        cash_from_sales = 0.0
-        for symbol in sold_positions:
-            if symbol in existing_positions:
-                # Add the market value of the sold position to cash
-                sold_value = existing_positions[symbol].get('market_value', 0)
-                cash_from_sales += sold_value
-                print(f"💰 Adding ${sold_value:.2f} from {symbol} sale to cash")
-        
-        experiment_cash = existing_cash + cash_from_sales
-    
-    # Calculate total experiment value and returns
-    total_experiment_value = positions_value + experiment_cash
-    total_return = total_experiment_value - baseline_investment
-    total_return_pct = total_return / baseline_investment if baseline_investment > 0 else 0
-    
-    return experiment_cash, total_experiment_value, total_return, total_return_pct, baseline_investment
-
-def update_portfolio_files(experiment_positions, experiment_cash, total_experiment_value, 
-                          total_return, total_return_pct, baseline_investment):
-    """Update JSON and CSV files"""
-    
-    # Create portfolio data structure
-    portfolio_data = {
-        "positions": experiment_positions,
-        "cash": experiment_cash,
-        "portfolio_value": total_experiment_value,
-        "total_invested": baseline_investment,
-        "total_return": total_return,
-        "total_return_pct": total_return_pct,
-        "positions_count": len(experiment_positions),
-        "last_update": datetime.now().isoformat(),
-        "experiment_start": "2025-09-08T00:00:00"
-    }
-    
-    # Write latest.json
-    os.makedirs('docs', exist_ok=True)
-    with open('docs/latest.json', 'w') as f:
-        json.dump(portfolio_data, f, indent=2)
-    
-    # Update CSV
-    csv_data = {
-        'date': datetime.now().strftime('%Y-%m-%d'),
-        'portfolio_value': total_experiment_value,
-        'cash': experiment_cash,
-        'positions_value': total_experiment_value - experiment_cash,
-        'total_invested': baseline_investment,
-        'total_return': total_return,
-        'total_return_pct': total_return_pct,
-        'positions_count': len(experiment_positions)
-    }
-    
-    # Add individual position data
-    for symbol in ['CRNX', 'STRL', 'OTEX', 'ZION']:
-        if symbol in experiment_positions:
-            pos = experiment_positions[symbol]
-            csv_data[f'{symbol}_price'] = pos['current_price']
-            csv_data[f'{symbol}_pnl'] = pos['unrealized_pnl']
-            csv_data[f'{symbol}_pnl_pct'] = pos['unrealized_pnl_pct']
-        else:
-            csv_data[f'{symbol}_price'] = None
-            csv_data[f'{symbol}_pnl'] = None
-            csv_data[f'{symbol}_pnl_pct'] = None
-    
-    # Update CSV file
-    os.makedirs('data', exist_ok=True)
-    df_new = pd.DataFrame([csv_data])
-    csv_file = 'data/portfolio_history.csv'
-    
-    if os.path.exists(csv_file):
-        df_existing = pd.read_csv(csv_file)
-        # Remove today's entry if it exists
-        today = datetime.now().strftime('%Y-%m-%d')
-        df_existing = df_existing[df_existing['date'] != today]
-        df_combined = pd.concat([df_existing, df_new], ignore_index=True)
-    else:
-        df_combined = df_new
-    
-    df_combined.to_csv(csv_file, index=False)
-    
-    print(f"✅ Updated docs/latest.json and data/portfolio_history.csv")
-
-def main():
-    """Main sync function"""
-    try:
         print("=== Portfolio Sync Starting ===")
         
+        # Get Alpaca credentials
+        api_key = os.environ.get('ALPACA_API_KEY')
+        secret_key = os.environ.get('ALPACA_SECRET_KEY')
+        base_url = os.environ.get('ALPACA_BASE_URL', 'https://paper-api.alpaca.markets')
+        
+        if not api_key or not secret_key:
+            print("Missing Alpaca API credentials")
+            exit(1)
+        
+        headers = {
+            "APCA-API-KEY-ID": api_key,
+            "APCA-API-SECRET-KEY": secret_key,
+            "Content-Type": "application/json"
+        }
+        
+        print(f"Connecting to: {base_url}")
+        
+        # Get account and positions from Alpaca
+        account_response = requests.get(f"{base_url}/v2/account", headers=headers)
+        if account_response.status_code != 200:
+            print(f"Account API failed: {account_response.status_code}")
+            exit(1)
+        
+        account = account_response.json()
+        print(f"Connected! Account status: {account['status']}")
+        
+        positions_response = requests.get(f"{base_url}/v2/positions", headers=headers)
+        if positions_response.status_code != 200:
+            print(f"Positions API failed: {positions_response.status_code}")
+            exit(1)
+        
+        positions = positions_response.json()
+        current_symbols = [pos['symbol'] for pos in positions]
+        print(f"Current positions: {current_symbols}")
+        
         # Load existing portfolio data
-        existing_portfolio = load_existing_portfolio()
-        existing_symbols = set(existing_portfolio.get('positions', {}).keys()) if existing_portfolio else set()
+        existing_portfolio = None
+        try:
+            with open('docs/latest.json', 'r') as f:
+                existing_portfolio = json.load(f)
+        except FileNotFoundError:
+            print("No existing portfolio found")
         
-        # Get current Alpaca data
-        account, positions = get_alpaca_data()
+        existing_positions = existing_portfolio.get('positions', {}) if existing_portfolio else {}
+        existing_symbols = set(existing_positions.keys())
         
-        # Process positions
-        experiment_positions, positions_value = process_alpaca_positions(positions, existing_portfolio)
-        current_symbols = set(experiment_positions.keys())
+        # Process current Alpaca positions
+        experiment_positions = {}
+        positions_value = 0
+        
+        for pos in positions:
+            symbol = pos['symbol']
+            if symbol in ['CRNX', 'STRL', 'OTEX', 'ZION']:
+                shares = float(pos['qty'])
+                market_value = float(pos['market_value'])
+                current_price = market_value / shares if shares > 0 else 0
+                
+                # Get cost basis with fallbacks
+                cost_basis = None
+                for field in ['cost_basis', 'avg_cost_basis']:
+                    if field in pos and pos[field]:
+                        cost_basis = float(pos[field])
+                        break
+                
+                # Get entry price with fallbacks  
+                entry_price = None
+                for field in ['avg_entry_price', 'entry_price']:
+                    if field in pos and pos[field]:
+                        entry_price = float(pos[field])
+                        break
+                
+                unrealized_pnl = float(pos.get('unrealized_pl', 0))
+                unrealized_pnl_pct = float(pos.get('unrealized_plpc', 0))
+                
+                # Get catalyst from existing data
+                catalyst = existing_positions.get(symbol, {}).get('catalyst', 'N/A')
+                
+                position_data = {
+                    "symbol": symbol,
+                    "shares": shares,
+                    "entry_price": entry_price or current_price,
+                    "current_price": current_price,
+                    "market_value": market_value,
+                    "cost_basis": cost_basis or (shares * (entry_price or current_price)),
+                    "unrealized_pnl": unrealized_pnl,
+                    "unrealized_pnl_pct": unrealized_pnl_pct,
+                    "catalyst": catalyst,
+                    "last_update": datetime.now().isoformat()
+                }
+                
+                experiment_positions[symbol] = position_data
+                positions_value += market_value
         
         # Detect sold positions (stop losses)
-        sold_positions = existing_symbols - current_symbols
+        current_symbols_set = set(experiment_positions.keys())
+        sold_positions = existing_symbols - current_symbols_set
+        
         if sold_positions:
             for symbol in sold_positions:
-                print(f"🚨 {symbol} STOP LOSS DETECTED - Position not found in account")
+                print(f"Stop loss detected - {symbol} position not found in account")
         
-        # Calculate financials
-        experiment_cash, total_experiment_value, total_return, total_return_pct, baseline_investment = \
-            calculate_experiment_financials(positions_value, existing_portfolio, sold_positions)
+        # Calculate experiment cash and returns
+        if existing_portfolio:
+            baseline_investment = existing_portfolio.get('total_invested', 1000.0)
+            existing_cash = existing_portfolio.get('cash', 0.0)
+            
+            # Add cash from sold positions
+            cash_from_sales = 0.0
+            for symbol in sold_positions:
+                if symbol in existing_positions:
+                    sold_value = existing_positions[symbol].get('market_value', 0)
+                    cash_from_sales += sold_value
+                    print(f"Adding ${sold_value:.2f} from {symbol} sale to cash")
+            
+            experiment_cash = existing_cash + cash_from_sales
+        else:
+            baseline_investment = 1000.0
+            experiment_cash = 0.0
         
-        # Print summary
-        print(f"\n📊 PORTFOLIO SUMMARY")
+        total_experiment_value = positions_value + experiment_cash
+        total_return = total_experiment_value - baseline_investment
+        total_return_pct = total_return / baseline_investment if baseline_investment > 0 else 0
+        
         print(f"Positions Value: ${positions_value:.2f}")
         print(f"Experiment Cash: ${experiment_cash:.2f}")
         print(f"Total Value: ${total_experiment_value:.2f}")
         print(f"Total Return: ${total_return:.2f} ({total_return_pct:.2%})")
-        print(f"Active Positions: {len(experiment_positions)}")
         
-        # Update files
-        update_portfolio_files(experiment_positions, experiment_cash, total_experiment_value,
-                             total_return, total_return_pct, baseline_investment)
+        # Create updated portfolio data
+        portfolio_data = {
+            "positions": experiment_positions,
+            "cash": experiment_cash,
+            "portfolio_value": total_experiment_value,
+            "total_invested": baseline_investment,
+            "total_return": total_return,
+            "total_return_pct": total_return_pct,
+            "positions_count": len(experiment_positions),
+            "last_update": datetime.now().isoformat(),
+            "experiment_start": "2025-09-08T00:00:00"
+        }
         
-        print("✅ Portfolio sync completed successfully")
+        # Write updated JSON
+        os.makedirs('docs', exist_ok=True)
+        with open('docs/latest.json', 'w') as f:
+            json.dump(portfolio_data, f, indent=2)
         
-    except Exception as e:
-        print(f"❌ Error during sync: {e}")
-        raise
-
-if __name__ == "__main__":
-    main()
+        # Update CSV
+        csv_data = {
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'portfolio_value': total_experiment_value,
+            'cash': experiment_cash,
+            'positions_value': positions_value,
+            'total_invested': baseline_investment,
+            'total_return': total_return,
+            'total_return_pct': total_return_pct,
+            'positions_count': len(experiment_positions)
+        }
+        
+        # Add individual position data
+        for symbol in ['CRNX', 'STRL', 'OTEX', 'ZION']:
+            if symbol in experiment_positions:
+                pos = experiment_positions[symbol]
+                csv_data[f'{symbol}_price'] = pos['current_price']
+                csv_data[f'{symbol}_pnl'] = pos['unrealized_pnl']
+                csv_data[f'{symbol}_pnl_pct'] = pos['unrealized_pnl_pct']
+            else:
+                csv_data[f'{symbol}_price'] = None
+                csv_data[f'{symbol}_pnl'] = None
+                csv_data[f'{symbol}_pnl_pct'] = None
+        
+        # Update CSV file
+        os.makedirs('data', exist_ok=True)
+        df_new = pd.DataFrame([csv_data])
+        csv_file = 'data/portfolio_history.csv'
+        
+        if os.path.exists(csv_file):
+            df_existing = pd.read_csv(csv_file)
+            today = datetime.now().strftime('%Y-%m-%d')
+            df_existing = df_existing[df_existing['date'] != today]
+            df_combined = pd.concat([df_existing, df_new], ignore_index=True)
+        else:
+            df_combined = df_new
+        
+        df_combined.to_csv(csv_file, index=False)
+        
+        print("Portfolio sync completed successfully")
+        EOF
+    
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add docs/latest.json data/portfolio_history.csv
+        if ! git diff --staged --quiet; then
+          git commit -m "Update portfolio data - $(date)"
+          git push origin HEAD
+          echo "Changes committed and pushed"
+        else
+          echo "No changes to commit"
+        fi

@@ -8,15 +8,15 @@
       "cost_basis": 260.0,
       "catalyst": "FDA PDUFA September 25",
       "sector": "Healthcare",
-      "current_price": 33.905,
-      "market_value": 271.24,
-      "unrealized_pnl": 11.240000000000009,
-      "unrealized_pnl_pct": 0.04323076923076927,
+      "current_price": 33.91,
+      "market_value": 271.28,
+      "unrealized_pnl": 11.279999999999973,
+      "unrealized_pnl_pct": 0.04338461538461528,
       "highest_price": 36.5,
       "stop_level": 28.275,
       "stop_type": "initial",
-      "stop_distance": 0.16605220468957388,
-      "stop_distance_dollars": 5.630000000000003
+      "stop_distance": 0.16617516956649953,
+      "stop_distance_dollars": 5.634999999999998
     },
     "STRL": {
       "symbol": "STRL",
@@ -26,15 +26,15 @@
       "cost_basis": 250.0,
       "catalyst": "Q3 Earnings October",
       "sector": "Industrial",
-      "current_price": 360.33,
-      "market_value": 314.92841999999996,
-      "unrealized_pnl": 64.96441999999999,
-      "unrealized_pnl_pct": 0.25989510489510487,
+      "current_price": 360.25,
+      "market_value": 314.8585,
+      "unrealized_pnl": 64.8945,
+      "unrealized_pnl_pct": 0.25961538461538464,
       "highest_price": 360.33,
       "stop_level": 331.5036,
       "stop_type": "trailing",
-      "stop_distance": 0.07999999999999995,
-      "stop_distance_dollars": 28.82639999999998
+      "stop_distance": 0.07979569743233864,
+      "stop_distance_dollars": 28.746399999999994
     },
     "OTEX": {
       "symbol": "OTEX",
@@ -44,15 +44,15 @@
       "cost_basis": 243.92,
       "catalyst": "Q1 FY2025 Earnings Oct 31",
       "sector": "Technology",
-      "current_price": 36.98,
-      "market_value": 295.84,
-      "unrealized_pnl": 51.91999999999999,
-      "unrealized_pnl_pct": 0.21285667431944896,
+      "current_price": 36.97,
+      "market_value": 295.76,
+      "unrealized_pnl": 51.84,
+      "unrealized_pnl_pct": 0.2125286979337488,
       "highest_price": 37.675,
       "stop_level": 34.661,
       "stop_type": "trailing",
-      "stop_distance": 0.0627095727420226,
-      "stop_distance_dollars": 2.3189999999999955
+      "stop_distance": 0.062456045442250405,
+      "stop_distance_dollars": 2.3089999999999975
     },
     "ZION": {
       "symbol": "ZION",
@@ -62,23 +62,19 @@
       "cost_basis": 221.56,
       "catalyst": "Q3 Earnings + Fed Cuts",
       "sector": "Financial",
-      "current_price": 58.67,
-      "market_value": 234.68,
-      "unrealized_pnl": 13.120000000000005,
-      "unrealized_pnl_pct": 0.05921646506589639,
+      "current_price": 58.7,
+      "market_value": 234.8,
+      "unrealized_pnl": 13.240000000000009,
+      "unrealized_pnl_pct": 0.05975807907564546,
       "highest_price": 59.19,
       "stop_level": 54.4548,
       "stop_type": "trailing",
-      "stop_distance": 0.071845917845577,
-      "stop_distance_dollars": 4.215200000000003
+      "stop_distance": 0.07232027257240212,
+      "stop_distance_dollars": 4.245200000000004
     }
   },
   "cash": 24.52,
-  "portfolio_value": 1141.20842,
-
-  "last_update": "2025-09-19T20:32:18.421743",
-
-  "last_update": "2025-09-19T22:08:55.775397",
-
+  "portfolio_value": 1141.2185,
+  "last_update": "2025-09-20T14:08:53.260226",
   "experiment_start": "2025-09-08T00:00:00"
 }

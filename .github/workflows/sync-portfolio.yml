@@ -32,26 +32,33 @@ jobs:
         APCA_API_BASE_URL: ${{ secrets.ALPACA_BASE_URL }}
       run: |
         python - << 'EOF'
-        import alpaca_trade_api as tradeapi
+        import requests
         import json
+        import base64
         from datetime import datetime
         import os
         
-        # Debug: Check environment variables (without revealing actual values)
-        print("Checking environment variables:")
-        print(f"APCA_API_KEY_ID exists: {'APCA_API_KEY_ID' in os.environ}")
-        print(f"APCA_API_SECRET_KEY exists: {'APCA_API_SECRET_KEY' in os.environ}")
-        print(f"APCA_API_BASE_URL exists: {'APCA_API_BASE_URL' in os.environ}")
-        if 'APCA_API_BASE_URL' in os.environ:
-            print(f"Base URL: {os.environ['APCA_API_BASE_URL']}")
+        print("Starting portfolio sync...")
         
-        # Initialize Alpaca API - it will automatically use APCA_* environment variables
-        try:
-            api = tradeapi.REST()
-            print("Alpaca API client created successfully")
-        except Exception as e:
-            print(f"Error creating API client: {e}")
+        # Get credentials from environment
+        api_key = os.environ.get('APCA_API_KEY_ID')
+        api_secret = os.environ.get('APCA_API_SECRET_KEY') 
+        base_url = os.environ.get('APCA_API_BASE_URL')
+        
+        if not all([api_key, api_secret, base_url]):
+            print("Missing required environment variables")
             exit(1)
+        
+        print(f"Using base URL: {base_url}")
+        
+        # Create auth header for Alpaca API
+        credentials = f"{api_key}:{api_secret}"
+        encoded_credentials = base64.b64encode(credentials.encode()).decode()
+        
+        headers = {
+            "Authorization": f"Basic {encoded_credentials}",
+            "Content-Type": "application/json"
+        }
         
         def get_catalyst_for_symbol(symbol):
             catalysts = {
@@ -62,20 +69,119 @@ jobs:
             }
             return catalysts.get(symbol, "N/A")
         
-        # Test API connection
-        try:
-            print("Testing API connection...")
-            account = api.get_account()
-            print(f"Account status: {account.status}")
-            print("API connection successful")
-        except Exception as e:
-            print(f"API connection failed: {e}")
-            print("Please verify your Alpaca API credentials in GitHub secrets")
+        # Test authentication and get account
+        print("Testing Alpaca API connection...")
+        account_url = f"{base_url}/v2/account"
+        account_response = requests.get(account_url, headers=headers)
+        
+        if account_response.status_code != 200:
+            print(f"Account API failed: {account_response.status_code}")
+            print(f"Response: {account_response.text}")
+            
+            # Try alternative authentication method
+            headers_alt = {
+                "APCA-API-KEY-ID": api_key,
+                "APCA-API-SECRET-KEY": api_secret,
+                "Content-Type": "application/json"
+            }
+            
+            print("Trying alternative authentication method...")
+            account_response = requests.get(account_url, headers=headers_alt)
+            
+            if account_response.status_code != 200:
+                print(f"Alternative auth also failed: {account_response.status_code}")
+                print(f"Response: {account_response.text}")
+                exit(1)
+            else:
+                print("Alternative authentication worked!")
+                headers = headers_alt
+        
+        account = account_response.json()
+        print(f"Account connected successfully. Status: {account.get('status', 'unknown')}")
+        
+        # Get current positions
+        positions_url = f"{base_url}/v2/positions"
+        positions_response = requests.get(positions_url, headers=headers)
+        
+        if positions_response.status_code != 200:
+            print(f"Positions API failed: {positions_response.status_code}")
+            print(f"Response: {positions_response.text}")
             exit(1)
         
-        # Get current portfolio
-        positions = api.list_positions()
+        positions = positions_response.json()
         print(f"Found {len(positions)} positions in Alpaca account")
+        
+        # Log which symbols are currently held
+        current_symbols = [pos['symbol'] for pos in positions]
+        print(f"Current positions: {current_symbols}")
+        
+        # Read existing portfolio data to preserve baseline investment
+        try:
+            with open('docs/latest.json', 'r') as f:
+                existing_data = json.load(f)
+            baseline_investment = existing_data.get('total_invested', 1000.0)
+            print(f"Using baseline investment: ${baseline_investment}")
+        except Exception as e:
+            print(f"Could not read existing data: {e}")
+            baseline_investment = float(account['portfolio_value'])
+            print(f"Using current portfolio value as baseline: ${baseline_investment}")
+        
+        # Calculate portfolio metrics
+        current_portfolio_value = float(account['portfolio_value'])
+        current_cash = float(account['cash'])
+        current_positions_value = sum(float(pos['market_value']) for pos in positions)
+        total_return = current_portfolio_value - baseline_investment
+        total_return_pct = total_return / baseline_investment if baseline_investment > 0 else 0
+        
+        print(f"Portfolio value: ${current_portfolio_value}")
+        print(f"Cash: ${current_cash}")
+        print(f"Total return: ${total_return} ({total_return_pct*100:.2f}%)")
+        
+        # Build new portfolio data structure
+        portfolio_data = {
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "portfolio_value": current_portfolio_value,
+            "cash": current_cash,
+            "positions_value": current_positions_value,
+            "total_invested": baseline_investment,
+            "total_return": total_return,
+            "total_return_pct": total_return_pct,
+            "positions_count": len(positions),
+            "data_source": "Alpaca",
+            "positions": {},
+            "alpaca_portfolio_value": current_portfolio_value,
+            "alpaca_cash": current_cash,
+            "alpaca_buying_power": float(account['buying_power']),
+            "account_status": account['status']
+        }
+        
+        # Add individual positions
+        for position in positions:
+            symbol = position['symbol']
+            portfolio_data["positions"][symbol] = {
+                "shares": float(position['qty']),
+                "entry_price": float(position['avg_cost_basis']),
+                "current_price": float(position['current_price']),
+                "market_value": float(position['market_value']),
+                "unrealized_pnl": float(position['unrealized_pl']),
+                "unrealized_pnl_pct": float(position['unrealized_plpc']),
+                "stop_level": 0,  # Will need to add stop level logic
+                "stop_type": "trailing",
+                "catalyst": get_catalyst_for_symbol(symbol)
+            }
+            print(f"Added position: {symbol} - {position['qty']} shares @ ${position['current_price']}")
+        
+        # Write updated data to file
+        with open('docs/latest.json', 'w') as f:
+            json.dump(portfolio_data, f, indent=2)
+        
+        print("Portfolio data successfully updated!")
+        print(f"Positions in file: {list(portfolio_data['positions'].keys())}")
+        
+        # If CRNX is not in current positions, it means stop loss was triggered
+        if 'CRNX' not in current_symbols:
+            print("CRNX position not found - stop loss was likely triggered")
+        EOF
         
         # Read existing data to preserve order history and calculations
         try:

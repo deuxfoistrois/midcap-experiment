@@ -144,26 +144,54 @@ jobs:
             for symbol in sold_positions:
                 print(f"Stop loss detected - {symbol} position not found in account")
         
-        # Calculate experiment cash and returns
+        # Calculate experiment cash using actual trade execution data from Alpaca
+        baseline_investment = 1000.0
+        
         if existing_portfolio:
-            baseline_investment = existing_portfolio.get('total_invested', 1000.0)
-            existing_cash = existing_portfolio.get('cash', 24.52)
+            existing_cash = 24.52  # Your original starting cash
+            existing_positions = existing_portfolio.get('positions', {})
+            existing_symbols = set(existing_positions.keys())
             
-            # Add cash from sold positions to track actual proceeds
-            cash_from_sales = 0.0
-            for symbol in sold_positions:
-                if symbol in existing_positions:
-                    # Use the market value from when position was last tracked
-                    sold_value = existing_positions[symbol].get('market_value', 0)
-                    cash_from_sales += sold_value
-                    print(f"Adding ${sold_value:.2f} from {symbol} sale to cash")
+            # Detect sold positions  
+            current_symbols_set = set(experiment_positions.keys())
+            sold_positions = existing_symbols - current_symbols_set
             
-            # Your actual experiment cash = original cash + sale proceeds
-            experiment_cash = existing_cash + cash_from_sales
-            
+            if sold_positions:
+                # Get actual trade data from Alpaca to find sale proceeds
+                try:
+                    # Get recent orders/trades to find the actual sale price
+                    orders_response = requests.get(f"{base_url}/v2/orders", 
+                                                 headers=headers, 
+                                                 params={"status": "filled", "limit": 50})
+                    
+                    cash_from_sales = 0.0
+                    if orders_response.status_code == 200:
+                        orders = orders_response.json()
+                        for order in orders:
+                            if (order.get('symbol') in sold_positions and 
+                                order.get('side') == 'sell' and
+                                order.get('status') == 'filled'):
+                                
+                                filled_qty = float(order.get('filled_qty', 0))
+                                filled_avg_price = float(order.get('filled_avg_price', 0))
+                                sale_proceeds = filled_qty * filled_avg_price
+                                cash_from_sales += sale_proceeds
+                                
+                                print(f"Found {order['symbol']} sale: {filled_qty} shares @ ${filled_avg_price:.2f} = ${sale_proceeds:.2f}")
+                    
+                    experiment_cash = existing_cash + cash_from_sales
+                    print(f"Original cash: ${existing_cash:.2f}")
+                    print(f"Actual sale proceeds: ${cash_from_sales:.2f}")
+                    print(f"Total experiment cash: ${experiment_cash:.2f}")
+                    
+                except Exception as e:
+                    print(f"Could not get trade data: {e}")
+                    # Fallback to simple calculation
+                    experiment_cash = baseline_investment - positions_value
+            else:
+                experiment_cash = existing_cash
         else:
-            baseline_investment = 1000.0
-            experiment_cash = 24.52  # Default starting cash
+            experiment_cash = baseline_investment - positions_value
         
         total_experiment_value = positions_value + experiment_cash
         total_return = total_experiment_value - baseline_investment

@@ -1,236 +1,156 @@
-name: Sync Portfolio with Alpaca
+#!/usr/bin/env python3
+import os
+import json
+import requests
+import pandas as pd
+from datetime import datetime, timedelta
+import alpaca_trade_api as tradeapi
 
-on:
-  schedule:
-    # Run every 15 minutes during market hours (9:30 AM - 4:00 PM ET)
-    - cron: '*/15 14-21 * * 1-5'  # Monday-Friday, 2:30 PM - 9:00 PM UTC (9:30 AM - 4:00 PM ET)
-  workflow_dispatch:  # Allows manual triggering
+def get_alpaca_client():
+    """Initialize Alpaca client"""
+    api_key = os.environ.get('ALPACA_API_KEY')
+    secret_key = os.environ.get('ALPACA_SECRET_KEY')
+    base_url = os.environ.get('ALPACA_BASE_URL', 'https://paper-api.alpaca.markets')
+    
+    if not api_key or not secret_key:
+        raise ValueError("Alpaca API credentials not found in environment variables")
+    
+    return tradeapi.REST(api_key, secret_key, base_url, api_version='v2')
 
-jobs:
-  sync-portfolio:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        fetch-depth: 0
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-    
-    - name: Install dependencies
-      run: |
-        pip install requests
-    
-    - name: Sync Portfolio Data
-      env:
-        APCA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY }}
-        APCA_API_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
-        APCA_API_BASE_URL: ${{ secrets.ALPACA_BASE_URL }}
-      run: |
-        python3 << 'EOF'
-        import requests
-        import json
-        from datetime import datetime
-        import os
-        
+def sync_portfolio_with_alpaca():
+    """Complete portfolio sync with Alpaca"""
+    try:
         print("=== Portfolio Sync Starting ===")
         
-        # Get credentials
-        api_key = os.environ.get('APCA_API_KEY_ID')
-        api_secret = os.environ.get('APCA_API_SECRET_KEY') 
-        base_url = os.environ.get('APCA_API_BASE_URL')
+        # Initialize Alpaca client
+        api = get_alpaca_client()
         
-        if not all([api_key, api_secret, base_url]):
-            print("ERROR: Missing credentials")
-            exit(1)
+        # Get account info
+        account = api.get_account()
+        print(f"Connected! Account status: {account.status}")
         
-        print(f"Connecting to: {base_url}")
+        # Get current positions from Alpaca
+        positions = api.list_positions()
+        current_symbols = [pos.symbol for pos in positions]
+        print(f"Current positions: {current_symbols}")
         
-        # Authentication headers
-        headers = {
-            "APCA-API-KEY-ID": api_key,
-            "APCA-API-SECRET-KEY": api_secret,
-            "Content-Type": "application/json"
-        }
+        # Define experiment symbols
+        experiment_symbols = ['CRNX', 'STRL', 'OTEX', 'ZION']
         
-        # Test connection
-        account_response = requests.get(f"{base_url}/v2/account", headers=headers)
-        if account_response.status_code != 200:
-            print(f"Auth failed: {account_response.status_code}")
-            exit(1)
+        # Check for missing positions (stop losses)
+        missing_positions = set(experiment_symbols) - set(current_symbols)
+        if missing_positions:
+            for symbol in missing_positions:
+                print(f"🚨 {symbol} STOP LOSS DETECTED - Position not found in account")
         
-        account = account_response.json()
-        print(f"Connected! Account status: {account['status']}")
-        
-        # Get positions
-        positions_response = requests.get(f"{base_url}/v2/positions", headers=headers)
-        if positions_response.status_code != 200:
-            print(f"Positions failed: {positions_response.status_code}")
-            exit(1)
-        
-        positions = positions_response.json()
-        symbols = [pos['symbol'] for pos in positions]
-        print(f"Current positions: {symbols}")
-        
-        # Check if CRNX missing (stop loss triggered)
-        crnx_missing = 'CRNX' not in symbols
-        if crnx_missing:
-            print("🚨 CRNX STOP LOSS DETECTED - Position not found in account")
-        
-        # Get existing portfolio data to understand your experiment parameters
-        try:
-            with open('docs/latest.json', 'r') as f:
-                existing = json.load(f)
-            
-            # Extract experiment parameters from existing data (NO HARDCODING)
-            experiment_symbols = list(existing.get('positions', {}).keys())
-            baseline = existing.get('total_invested', 1000.0)
-            existing_cash = existing.get('cash', 0)
-            existing_positions_count = existing.get('positions_count', 0)
-            
-        except Exception as e:
-            print(f"Could not read existing data: {e}")
-            # Emergency fallback - but still try to be dynamic
-            experiment_symbols = [pos['symbol'] for pos in positions]  # Use whatever is in Alpaca
-            baseline = 1000.0  # Only fallback value
-            existing_cash = 0
-            existing_positions_count = 0
-        
-        print(f"Experiment symbols: {experiment_symbols}")
-        print(f"Baseline investment: ${baseline}")
-        
-        # Calculate current experiment positions value
-        experiment_positions_value = sum(
-            float(pos['market_value']) for pos in positions 
-            if pos['symbol'] in experiment_symbols
-        )
-        
-        current_positions_count = len([p for p in positions if p['symbol'] in experiment_symbols])
-        
-        # Calculate experiment cash dynamically
-        if existing_positions_count > current_positions_count:
-            # Positions were sold - calculate cash from the difference
-            print(f"Positions reduced from {existing_positions_count} to {current_positions_count} - calculating cash from sales")
-            
-            # Get the total value that should exist based on existing data
-            existing_total = existing.get('portfolio_value', baseline)
-            experiment_cash = existing_total - experiment_positions_value
-            
-        else:
-            # No sales detected, use existing cash
-            experiment_cash = existing_cash
-        
-        # Calculate experiment portfolio value
-        experiment_portfolio_value = experiment_positions_value + experiment_cash
-        
-        # Calculate returns
-        total_return = experiment_portfolio_value - baseline
-        return_pct = total_return / baseline if baseline > 0 else 0
-        
-        print(f"Experiment Portfolio (positions only): ${experiment_positions_value:,.2f}")
-        print(f"Experiment Cash: ${experiment_cash:,.2f}")
-        print(f"Total Experiment Value: ${experiment_portfolio_value:,.2f}")
-        print(f"Return: ${total_return:,.2f} ({return_pct*100:.2f}%)")
-        
-        # Build portfolio data for YOUR EXPERIMENT, not full Alpaca account
-        portfolio_data = {
-            "date": datetime.now().strftime("%Y-%m-%d"),
-            "portfolio_value": experiment_portfolio_value,  # Your experiment value
-            "cash": experiment_cash,  # Your experiment cash
-            "positions_value": experiment_positions_value,  # Only your positions
-            "total_invested": baseline,
-            "total_return": total_return,
-            "total_return_pct": return_pct,
-            "positions_count": len([p for p in positions if p['symbol'] in experiment_symbols]),
-            "data_source": "Alpaca",
-            "positions": {},
-            "alpaca_portfolio_value": full_portfolio_value,  # Full Alpaca account (for reference)
-            "alpaca_cash": full_cash,  # Full Alpaca cash (for reference)
-            "alpaca_buying_power": float(account['buying_power']),
-            "account_status": account['status']
-        }
-        
-        # Process positions with robust field handling
-        catalysts = {
-            "CRNX": "FDA PDUFA September 25",
-            "STRL": "Q3 Earnings October", 
-            "OTEX": "Q1 FY2025 Earnings Oct 31",
-            "ZION": "Q3 Earnings + Fed Cuts"
-        }
+        # Build experiment positions data
+        experiment_positions = {}
+        positions_value = 0.0
         
         for pos in positions:
-            symbol = pos['symbol']
-            
-            # Debug: show available fields
-            print(f"Processing {symbol}, fields: {list(pos.keys())}")
-            
-            # Find cost basis field (try multiple names)
-            cost_basis = 0
-            for field in ['avg_cost_basis', 'cost_basis', 'avg_entry_price']:
-                if field in pos:
-                    cost_basis = float(pos[field])
-                    break
-            
-            # Find current price field
-            current_price = 0
-            for field in ['current_price', 'market_price', 'price']:
-                if field in pos:
-                    current_price = float(pos[field])
-                    break
-            
-            portfolio_data["positions"][symbol] = {
-                "shares": float(pos['qty']),
-                "entry_price": cost_basis,
-                "current_price": current_price,
-                "market_value": float(pos['market_value']),
-                "unrealized_pnl": float(pos['unrealized_pl']),
-                "unrealized_pnl_pct": float(pos['unrealized_plpc']),
-                "stop_level": 0,
-                "stop_type": "trailing",
-                "catalyst": catalysts.get(symbol, "N/A")
-            }
-            
-            print(f"✓ {symbol}: {pos['qty']} shares @ ${current_price}")
+            if pos.symbol in experiment_symbols:
+                current_price = float(pos.market_value) / float(pos.qty)
+                position_data = {
+                    "symbol": pos.symbol,
+                    "shares": float(pos.qty),
+                    "entry_price": float(pos.avg_entry_price) if pos.avg_entry_price else current_price,
+                    "current_price": current_price,
+                    "market_value": float(pos.market_value),
+                    "unrealized_pnl": float(pos.unrealized_pl),
+                    "unrealized_pnl_pct": float(pos.unrealized_plpc),
+                    "cost_basis": float(pos.cost_basis) if pos.cost_basis else float(pos.qty) * float(pos.avg_entry_price),
+                    "last_update": datetime.now().isoformat()
+                }
+                experiment_positions[pos.symbol] = position_data
+                positions_value += float(pos.market_value)
         
-        # Save file
-        with open('docs/latest.json', 'w') as f:
+        # Get cash balance
+        cash_value = float(account.cash)
+        
+        # Calculate total portfolio value
+        full_portfolio_value = positions_value + cash_value
+        
+        # Calculate returns (assuming $1000 baseline)
+        baseline_investment = 1000.0
+        experiment_return = full_portfolio_value - baseline_investment
+        return_pct = (experiment_return / baseline_investment) * 100
+        
+        print(f"Experiment symbols: {experiment_symbols}")
+        print(f"Baseline investment: ${baseline_investment}")
+        print(f"Experiment Portfolio (positions only): ${positions_value:.2f}")
+        print(f"Experiment Cash: ${cash_value:,.2f}")
+        print(f"Total Experiment Value: ${full_portfolio_value:,.2f}")
+        print(f"Return: ${experiment_return:,.2f} ({return_pct:.2f}%)")
+        
+        # Create portfolio data structure
+        portfolio_data = {
+            "positions": experiment_positions,
+            "cash": cash_value,
+            "portfolio_value": full_portfolio_value,
+            "total_invested": baseline_investment,
+            "total_return": experiment_return,
+            "total_return_pct": return_pct / 100,
+            "positions_count": len(experiment_positions),
+            "last_update": datetime.now().isoformat(),
+            "experiment_start": "2025-09-08T00:00:00"
+        }
+        
+        # Save to latest.json
+        os.makedirs('data', exist_ok=True)
+        with open('data/latest.json', 'w') as f:
             json.dump(portfolio_data, f, indent=2)
         
-        print("=== Portfolio Data Updated Successfully ===")
-        print(f"Final positions: {list(portfolio_data['positions'].keys())}")
+        # Update portfolio history CSV
+        csv_data = {
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'portfolio_value': full_portfolio_value,
+            'cash': cash_value,
+            'positions_value': positions_value,
+            'total_invested': baseline_investment,
+            'total_return': experiment_return,
+            'total_return_pct': return_pct / 100,
+            'positions_count': len(experiment_positions)
+        }
         
-        if crnx_missing:
-            print("🎯 CRNX removed from portfolio data (stop loss confirmed)")
+        # Add individual position data
+        for symbol in experiment_symbols:
+            if symbol in experiment_positions:
+                pos = experiment_positions[symbol]
+                csv_data[f'{symbol}_price'] = pos['current_price']
+                csv_data[f'{symbol}_pnl'] = pos['unrealized_pnl']
+                csv_data[f'{symbol}_pnl_pct'] = pos['unrealized_pnl_pct']
+            else:
+                # Position was sold (stop loss)
+                csv_data[f'{symbol}_price'] = None
+                csv_data[f'{symbol}_pnl'] = None
+                csv_data[f'{symbol}_pnl_pct'] = None
         
-        EOF
-    
-    - name: Commit changes
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action Portfolio Sync"
+        # Append to CSV
+        df_new = pd.DataFrame([csv_data])
+        csv_file = 'data/portfolio_history.csv'
         
-        echo "Checking git status:"
-        git status
+        if os.path.exists(csv_file):
+            df_existing = pd.read_csv(csv_file)
+            # Remove today's entry if it exists
+            df_existing = df_existing[df_existing['date'] != csv_data['date']]
+            df_combined = pd.concat([df_existing, df_new], ignore_index=True)
+        else:
+            df_combined = df_new
         
-        echo "Adding docs/latest.json:"
-        git add docs/latest.json
+        df_combined.to_csv(csv_file, index=False)
         
-        echo "Checking what will be committed:"
-        git diff --staged
+        print("✅ Portfolio sync completed successfully")
+        print(f"✅ Updated files: data/latest.json, data/portfolio_history.csv")
         
-        if git diff --staged --quiet; then
-          echo "No changes to commit"
-        else
-          echo "Committing changes:"
-          git commit -m "Auto-sync: Portfolio updated from Alpaca API - CRNX stop loss detected"
-          
-          echo "Pushing changes:"
-          git push origin HEAD
-          
-          echo "Changes committed and pushed successfully"
-        fi
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error during portfolio sync: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+if __name__ == "__main__":
+    success = sync_portfolio_with_alpaca()
+    if not success:
+        exit(1)

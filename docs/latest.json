@@ -10,7 +10,7 @@
       "unrealized_pnl": 2.52,
       "unrealized_pnl_pct": 0.0085936434320011,
       "catalyst": "Q1 FY2025 Earnings Oct 31",
-      "last_update": "2025-09-20T16:01:15.452301"
+      "last_update": "2025-09-20T16:07:48.093704"
     },
     "STRL": {
       "symbol": "STRL",
@@ -22,7 +22,7 @@
       "unrealized_pnl": 38.59584,
       "unrealized_pnl_pct": 0.1397070454617356,
       "catalyst": "Q3 Earnings October",
-      "last_update": "2025-09-20T16:01:15.452319"
+      "last_update": "2025-09-20T16:07:48.093719"
     },
     "ZION": {
       "symbol": "ZION",
@@ -34,15 +34,15 @@
       "unrealized_pnl": -0.16,
       "unrealized_pnl_pct": -0.0006809669731018,
       "catalyst": "Q3 Earnings + Fed Cuts",
-      "last_update": "2025-09-20T16:01:15.452325"
+      "last_update": "2025-09-20T16:07:48.093725"
     }
   },
-  "cash": 99191.43,
-  "portfolio_value": 100036.8485,
+  "cash": 24.52,
+  "portfolio_value": 869.9385,
   "total_invested": 1000.0,
-  "total_return": 99036.8485,
-  "total_return_pct": 99.03684849999999,
+  "total_return": -130.06150000000002,
+  "total_return_pct": -0.13006150000000002,
   "positions_count": 3,
-  "last_update": "2025-09-20T16:01:15.452345",
+  "last_update": "2025-09-20T16:07:48.093741",
   "experiment_start": "2025-09-08T00:00:00"
 }

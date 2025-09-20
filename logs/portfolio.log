@@ -314,3 +314,24 @@
 2025-09-20 14:08:53,254 - INFO - Portfolio value updated: $1141.22
 2025-09-20 14:08:53,260 - INFO - Daily snapshot saved for 2025-09-20
 2025-09-20 14:08:53,260 - INFO - Portfolio state saved
+2025-09-20 14:39:59,296 - INFO - Alpaca client initialized for: https://paper-api.alpaca.markets
+2025-09-20 14:39:59,683 - INFO - Connected to Alpaca - Account Status: ACTIVE
+2025-09-20 14:39:59,683 - INFO - Buying Power: $197,004.14
+2025-09-20 14:39:59,683 - INFO - Using Alpaca Markets for data and trading
+2025-09-20 14:39:59,683 - INFO - Portfolio state loaded successfully
+2025-09-20 14:39:59,683 - INFO - Syncing with Alpaca positions...
+2025-09-20 14:39:59,794 - ERROR - Error syncing with Alpaca positions: name 'alpaca_positions' is not defined
+2025-09-20 14:39:59,794 - INFO - Updating stock prices from Alpaca...
+2025-09-20 14:40:00,469 - INFO - Updated CRNX: $33.91 (P&L: 4.32%)
+2025-09-20 14:40:00,641 - INFO - Updated STRL: $360.33 (P&L: 25.99%)
+2025-09-20 14:40:00,812 - INFO - Updated OTEX: $36.98 (P&L: 21.29%)
+2025-09-20 14:40:00,982 - INFO - Updated ZION: $58.67 (P&L: 5.92%)
+2025-09-20 14:40:00,983 - INFO - Updating stop levels...
+2025-09-20 14:40:01,106 - ERROR - Error placing stop order for CRNX: invalid stop_price 28.275. sub-penny increment does not fulfill minimum pricing criteria
+2025-09-20 14:40:01,210 - ERROR - Error placing stop order for STRL: invalid stop_price 331.5036. sub-penny increment does not fulfill minimum pricing criteria
+2025-09-20 14:40:01,268 - ERROR - Error placing stop order for OTEX: invalid stop_price 34.661. sub-penny increment does not fulfill minimum pricing criteria
+2025-09-20 14:40:01,328 - ERROR - Error placing stop order for ZION: invalid stop_price 54.4548. sub-penny increment does not fulfill minimum pricing criteria
+2025-09-20 14:40:01,328 - INFO - Updated 0 stop orders in Alpaca
+2025-09-20 14:40:01,329 - INFO - Portfolio value updated: $1141.21
+2025-09-20 14:40:01,337 - INFO - Daily snapshot saved for 2025-09-20
+2025-09-20 14:40:01,338 - INFO - Portfolio state saved

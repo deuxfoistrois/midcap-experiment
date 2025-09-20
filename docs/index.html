@@ -259,27 +259,27 @@
 
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-value" id="portfolioValue">$0.00</div>
+                <div class="stat-value" id="portfolioValue">Loading...</div>
                 <div class="stat-label">Portfolio Value</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="totalReturn">$0.00</div>
+                <div class="stat-value" id="totalReturn">Loading...</div>
                 <div class="stat-label">Total Return</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="returnPct">0.00%</div>
+                <div class="stat-value" id="returnPct">Loading...</div>
                 <div class="stat-label">Return %</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="positionsCount">0</div>
+                <div class="stat-value" id="positionsCount">Loading...</div>
                 <div class="stat-label">Active Positions</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="cashValue">$0.00</div>
+                <div class="stat-value" id="cashValue">Loading...</div>
                 <div class="stat-label">Available Cash</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="daysActive">0</div>
+                <div class="stat-value" id="daysActive">Loading...</div>
                 <div class="stat-label">Days Active</div>
             </div>
         </div>
@@ -327,7 +327,7 @@
                             </tr>
                         </thead>
                         <tbody id="positionsTableBody">
-                            <!-- Positions will be populated here -->
+                            <tr><td colspan="9" style="text-align: center; padding: 40px;">Loading positions...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -343,64 +343,70 @@
     <script>
         // Global variables
         let allocationChart, performanceChart, timelineChart;
+        let portfolioData = null;
 
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('Dashboard initializing...');
             loadDashboard();
-            setInterval(loadDashboard, 300000);
+            setInterval(loadDashboard, 300000); // Refresh every 5 minutes
         });
 
         // Fetch and load dashboard data
         function loadDashboard() {
-            // Fetch portfolio data from your GitHub repository
-            Promise.all([
-                fetch('https://raw.githubusercontent.com/deuxfoistrois/midcap-experiment/refs/heads/main/docs/latest.json').then(response => response.json()),
-                fetch('https://raw.githubusercontent.com/deuxfoistrois/midcap-experiment/refs/heads/main/docs/latest_report.json').then(response => response.json()).catch(error => {
-                    console.log('latest_report.json not found');
-                    return null;
+            console.log('Loading dashboard data...');
+            
+            fetch('https://raw.githubusercontent.com/deuxfoistrois/midcap-experiment/refs/heads/main/docs/latest.json')
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
                 })
-            ])
-            .then(([portfolioData, reportData]) => {
-                updateStats(portfolioData);
-                updateCharts(portfolioData);
-                updatePositionsTable(portfolioData, reportData);
-                updateLastUpdate(portfolioData);
-            })
-            .catch(error => {
-                console.error('Error loading dashboard:', error);
-                // Try fallback to just latest.json
-                fetch('https://raw.githubusercontent.com/deuxfoistrois/midcap-experiment/refs/heads/main/docs/latest.json')
-                    .then(response => response.json())
-                    .then(data => {
-                        updateStats(data);
-                        updateCharts(data);
-                        updatePositionsTable(data, null);
-                        updateLastUpdate(data);
-                    })
-                    .catch(fallbackError => {
-                        console.error('Fallback also failed:', fallbackError);
-                        // Show error message in UI
-                        document.getElementById('portfolioValue').textContent = 'Error loading data';
-                    });
-            });
+                .then(data => {
+                    console.log('Portfolio data loaded successfully:', data);
+                    portfolioData = data;
+                    updateStats(data);
+                    updateCharts(data);
+                    updatePositionsTable(data);
+                    updateLastUpdate(data);
+                })
+                .catch(error => {
+                    console.error('Error loading dashboard:', error);
+                    document.getElementById('portfolioValue').textContent = 'Error loading data';
+                    document.getElementById('portfolioValue').style.color = '#ef4444';
+                });
         }
 
         // Update statistics cards
         function updateStats(data) {
-            document.getElementById('portfolioValue').textContent = `$${(data.portfolio_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            console.log('Updating stats with data:', data);
             
+            // Portfolio Value
+            const portfolioValue = data.portfolio_value || 0;
+            document.getElementById('portfolioValue').textContent = `$${portfolioValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            
+            // Total Return
             const totalReturn = data.total_return || 0;
+            const returnElement = document.getElementById('totalReturn');
+            returnElement.textContent = `${totalReturn >= 0 ? '+' : ''}$${totalReturn.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            returnElement.className = totalReturn >= 0 ? 'stat-value positive' : 'stat-value negative';
+            
+            // Return Percentage
             const totalReturnPct = (data.total_return_pct || 0) * 100;
+            const returnPctElement = document.getElementById('returnPct');
+            returnPctElement.textContent = `${totalReturnPct >= 0 ? '+' : ''}${totalReturnPct.toFixed(2)}%`;
+            returnPctElement.className = totalReturnPct >= 0 ? 'stat-value positive' : 'stat-value negative';
             
-            document.getElementById('totalReturn').textContent = `$${totalReturn.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            document.getElementById('totalReturn').className = totalReturn >= 0 ? 'stat-value positive' : 'stat-value negative';
-            
-            document.getElementById('returnPct').textContent = `${totalReturnPct.toFixed(2)}%`;
-            document.getElementById('returnPct').className = totalReturnPct >= 0 ? 'stat-value positive' : 'stat-value negative';
-            
+            // Positions Count
             document.getElementById('positionsCount').textContent = data.positions_count || 0;
-            document.getElementById('cashValue').textContent = `$${(data.cash || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             
+            // Cash Value
+            const cash = data.cash || 0;
+            document.getElementById('cashValue').textContent = `$${cash.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            
+            // Days Active
             if (data.date) {
                 const startDate = new Date('2025-09-08');
                 const currentDate = new Date(data.date);
@@ -416,7 +422,7 @@
             updatePerformanceChart(data);
         }
 
-        // Update timeline chart - ALWAYS use CSV data
+        // Update timeline chart
         function updateTimelineChart(data) {
             const ctx = document.getElementById('timelineChart').getContext('2d');
             
@@ -424,34 +430,24 @@
                 timelineChart.destroy();
             }
 
-            // Fetch CSV data from your GitHub repository
+            // Fetch CSV data for timeline
             fetch('https://raw.githubusercontent.com/deuxfoistrois/midcap-experiment/refs/heads/main/data/portfolio_history.csv')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    return response.text();
-                })
+                .then(response => response.text())
                 .then(csvText => {
-                    console.log('CSV data received, length:', csvText.length);
-                    console.log('First 300 chars:', csvText.substring(0, 300));
+                    console.log('CSV data received');
                     
                     const lines = csvText.trim().split('\n');
-                    console.log('Total lines:', lines.length);
-                    
                     const timelineData = [];
                     
                     // Parse CSV data (skip header row)
                     for (let i = 1; i < lines.length; i++) {
                         const values = lines[i].split(',');
-                        console.log(`Row ${i}:`, values);
                         
                         if (values.length >= 7 && values[0] && values[6]) {
                             const dateStr = values[0].trim();
                             const returnPct = parseFloat(values[6]) * 100;
                             
                             if (!isNaN(returnPct)) {
-                                // Parse date and format for display
                                 const date = new Date(dateStr);
                                 const displayDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                                 
@@ -459,38 +455,29 @@
                                     date: displayDate,
                                     return: returnPct
                                 });
-                                
-                                console.log(`Added data point: ${displayDate} = ${returnPct.toFixed(2)}%`);
                             }
                         }
                     }
                     
-                    console.log('Final timeline data points:', timelineData.length);
-                    console.log('Timeline data:', timelineData);
+                    console.log('Timeline data processed:', timelineData.length, 'points');
                     
-                    // Create chart with actual data
                     if (timelineData.length > 0) {
                         const dates = timelineData.map(d => d.date);
                         const portfolioReturns = timelineData.map(d => d.return);
-                        
-                        // Create benchmark progression based on actual data length
-                        const benchmarkReturns = dates.map((_, i) => i * 0.15); // 0.15% per day
+                        const benchmarkReturns = dates.map((_, i) => i * 0.15);
                         
                         createTimelineChart(ctx, dates, portfolioReturns, benchmarkReturns);
                     } else {
-                        console.error('No valid data points found in CSV');
-                        // Create empty chart
                         createTimelineChart(ctx, ['No Data'], [0], [0]);
                     }
                 })
                 .catch(error => {
                     console.error('Error fetching CSV:', error);
-                    // Show error in chart
                     createTimelineChart(ctx, ['Error'], [0], [0]);
                 });
         }
 
-        // Create the actual timeline chart
+        // Create timeline chart
         function createTimelineChart(ctx, dates, portfolioReturns, benchmarkReturns) {
             timelineChart = new Chart(ctx, {
                 type: 'line',
@@ -582,7 +569,7 @@
             const labels = Object.keys(positions);
             const values = labels.map(symbol => positions[symbol].market_value || 0);
             
-            if (data.cash > 0) {
+            if (data.cash && data.cash > 0) {
                 labels.push('Cash');
                 values.push(data.cash);
             }
@@ -591,6 +578,8 @@
                 '#667eea', '#764ba2', '#f093fb', '#f5576c',
                 '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'
             ];
+
+            console.log('Allocation chart data:', { labels, values });
 
             allocationChart = new Chart(ctx, {
                 type: 'doughnut',
@@ -631,6 +620,8 @@
             const labels = Object.keys(positions);
             const returns = labels.map(symbol => (positions[symbol].unrealized_pnl_pct || 0) * 100);
 
+            console.log('Performance chart data:', { labels, returns });
+
             const colors = returns.map(ret => ret >= 0 ? '#10b981' : '#ef4444');
 
             performanceChart = new Chart(ctx, {
@@ -665,12 +656,14 @@
             });
         }
 
-        // Updated positions table function to use trailing stops data
-        function updatePositionsTable(portfolioData, trailingStopsData) {
+        // Update positions table
+        function updatePositionsTable(data) {
+            console.log('Updating positions table with:', data);
+            
             const tbody = document.getElementById('positionsTableBody');
             tbody.innerHTML = '';
 
-            const positions = portfolioData.positions || {};
+            const positions = data.positions || {};
 
             for (const [symbol, position] of Object.entries(positions)) {
                 const row = document.createElement('tr');
@@ -679,23 +672,17 @@
                 const pnlPct = (position.unrealized_pnl_pct || 0) * 100;
                 const pnlClass = pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
                 
-                // Get stop level from trailing stops data - correct path is position_analysis
-                let stopLevel = 0;
-                if (trailingStopsData && trailingStopsData.position_analysis && trailingStopsData.position_analysis[symbol]) {
-                    stopLevel = trailingStopsData.position_analysis[symbol].stop_level || 0;
-                } else if (position.stop_level) {
-                    stopLevel = position.stop_level;
-                }
+                const stopLevel = position.stop_level || 0;
 
                 row.innerHTML = `
                     <td><span class="symbol">${symbol}</span></td>
                     <td>${(position.shares || 0).toFixed(3)}</td>
-                    <td class="price">${(position.entry_price || 0).toFixed(2)}</td>
-                    <td class="price">${(position.current_price || 0).toFixed(2)}</td>
-                    <td class="price">${(position.market_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                    <td class="${pnlClass}">${pnl.toFixed(2)}</td>
+                    <td class="price">$${(position.entry_price || 0).toFixed(2)}</td>
+                    <td class="price">$${(position.current_price || 0).toFixed(2)}</td>
+                    <td class="price">$${(position.market_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    <td class="${pnlClass}">$${pnl.toFixed(2)}</td>
                     <td class="${pnlClass}">${pnlPct.toFixed(2)}%</td>
-                    <td class="stop-level">${stopLevel.toFixed(2)}</td>
+                    <td class="stop-level">$${stopLevel.toFixed(2)}</td>
                     <td class="catalyst">${position.catalyst || 'N/A'}</td>
                 `;
                 
@@ -704,7 +691,7 @@
 
             if (Object.keys(positions).length === 0) {
                 const row = document.createElement('tr');
-                row.innerHTML = `<td colspan="9" style="text-align: center; color: #999; font-style: italic; padding: 40px;">No positions loaded</td>`;
+                row.innerHTML = `<td colspan="9" style="text-align: center; color: #999; font-style: italic; padding: 40px;">No positions found</td>`;
                 tbody.appendChild(row);
             }
         }

@@ -43,7 +43,7 @@ class AlpacaClient:
             
         self.api_key_id = os.environ.get('ALPACA_API_KEY_ID')
         self.secret_key = os.environ.get('ALPACA_SECRET_KEY')
-        self.base_url = os.environ.get('ALPACA_BASE_URL', 'https://paper-api.alpaca.markets')
+        self.base_url = os.environ.get('ALPACA_BASE_URL', 'https://paper-api.alpaca.markets/v2')
         
         if not self.api_key_id or not self.secret_key:
             raise ValueError("Alpaca API credentials not found in environment variables")
@@ -207,7 +207,7 @@ class AlpacaClient:
 
     def sync_portfolio_positions(self) -> Dict[str, Dict]:
         """Get current positions and sync with portfolio state"""
-        alpaca_positions = self.get_positions()
+        _positions = self.get_positions()
         
         portfolio_positions = {}
         

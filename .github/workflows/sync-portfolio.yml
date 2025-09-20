@@ -15,6 +15,7 @@ jobs:
       uses: actions/checkout@v3
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
     
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -81,38 +82,43 @@ jobs:
         if crnx_missing:
             print("🚨 CRNX STOP LOSS DETECTED - Position not found in account")
         
-        # Get baseline investment
-        try:
-            with open('docs/latest.json', 'r') as f:
-                existing = json.load(f)
-            baseline = existing.get('total_invested', 1000.0)
-        except:
-            baseline = 1000.0
+        # Calculate portfolio metrics based on EXPERIMENT positions only, not full Alpaca account
+        experiment_symbols = ['OTEX', 'STRL', 'ZION', 'CRNX']  # Your midcap experiment stocks
+        experiment_positions_value = sum(
+            float(pos['market_value']) for pos in positions 
+            if pos['symbol'] in experiment_symbols
+        )
         
-        # Calculate portfolio metrics
-        portfolio_value = float(account['portfolio_value'])
-        cash = float(account['cash'])
-        total_return = portfolio_value - baseline
+        # Your experiment cash (separate from Alpaca's $100k paper money)
+        experiment_cash = 58.06  # This should be updated based on your actual experiment cash
+        
+        # Calculate experiment portfolio value (NOT full Alpaca account)
+        experiment_portfolio_value = experiment_positions_value + experiment_cash
+        
+        # Calculate returns based on your $1000 experiment, not Alpaca's $100k
+        baseline = 1000.0  # Your actual experiment starting amount
+        total_return = experiment_portfolio_value - baseline
         return_pct = total_return / baseline
         
-        print(f"Portfolio: ${portfolio_value:,.2f}")
-        print(f"Cash: ${cash:,.2f}")
+        print(f"Experiment Portfolio (positions only): ${experiment_positions_value:,.2f}")
+        print(f"Experiment Cash: ${experiment_cash:,.2f}")
+        print(f"Total Experiment Value: ${experiment_portfolio_value:,.2f}")
         print(f"Return: ${total_return:,.2f} ({return_pct*100:.2f}%)")
         
-        # Build portfolio data
+        # Build portfolio data for YOUR EXPERIMENT, not full Alpaca account
         portfolio_data = {
             "date": datetime.now().strftime("%Y-%m-%d"),
-            "portfolio_value": portfolio_value,
-            "cash": cash,
-            "positions_value": portfolio_value - cash,
+            "portfolio_value": experiment_portfolio_value,  # Your experiment value
+            "cash": experiment_cash,  # Your experiment cash
+            "positions_value": experiment_positions_value,  # Only your positions
             "total_invested": baseline,
             "total_return": total_return,
             "total_return_pct": return_pct,
-            "positions_count": len(positions),
+            "positions_count": len([p for p in positions if p['symbol'] in experiment_symbols]),
             "data_source": "Alpaca",
             "positions": {},
-            "alpaca_portfolio_value": portfolio_value,
-            "alpaca_cash": cash,
+            "alpaca_portfolio_value": portfolio_value,  # Full Alpaca account (for reference)
+            "alpaca_cash": cash,  # Full Alpaca cash (for reference)
             "alpaca_buying_power": float(account['buying_power']),
             "account_status": account['status']
         }
@@ -175,11 +181,24 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action Portfolio Sync"
+        
+        echo "Checking git status:"
+        git status
+        
+        echo "Adding docs/latest.json:"
         git add docs/latest.json
+        
+        echo "Checking what will be committed:"
+        git diff --staged
+        
         if git diff --staged --quiet; then
           echo "No changes to commit"
         else
-          git commit -m "Auto-sync: Portfolio updated from Alpaca API"
-          git push
-          echo "Changes committed and pushed"
+          echo "Committing changes:"
+          git commit -m "Auto-sync: Portfolio updated from Alpaca API - CRNX stop loss detected"
+          
+          echo "Pushing changes:"
+          git push origin HEAD
+          
+          echo "Changes committed and pushed successfully"
         fi

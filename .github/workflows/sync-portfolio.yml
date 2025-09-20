@@ -89,6 +89,10 @@ jobs:
             if pos['symbol'] in experiment_symbols
         )
         
+        # Get full Alpaca account values for reference
+        full_portfolio_value = float(account['portfolio_value'])
+        full_cash = float(account['cash'])
+        
         # Your experiment cash (separate from Alpaca's $100k paper money)
         experiment_cash = 58.06  # This should be updated based on your actual experiment cash
         
@@ -117,8 +121,8 @@ jobs:
             "positions_count": len([p for p in positions if p['symbol'] in experiment_symbols]),
             "data_source": "Alpaca",
             "positions": {},
-            "alpaca_portfolio_value": portfolio_value,  # Full Alpaca account (for reference)
-            "alpaca_cash": cash,  # Full Alpaca cash (for reference)
+            "alpaca_portfolio_value": full_portfolio_value,  # Full Alpaca account (for reference)
+            "alpaca_cash": full_cash,  # Full Alpaca cash (for reference)
             "alpaca_buying_power": float(account['buying_power']),
             "account_status": account['status']
         }

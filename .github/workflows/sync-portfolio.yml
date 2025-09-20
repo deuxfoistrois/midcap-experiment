@@ -1,4 +1,4 @@
-name: Mid-Cap Portfolio Daily Update
+name: Portfolio Sync with Alpaca
 
 on:
   schedule:

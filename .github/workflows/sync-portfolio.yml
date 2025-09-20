@@ -45,7 +45,7 @@ def sync_portfolio_with_alpaca():
         
         # Build experiment positions data
         experiment_positions = {}
-        positions_value = 0.0
+        current_positions_value = 0.0
         
         for pos in positions:
             if pos.symbol in experiment_symbols:
@@ -62,34 +62,39 @@ def sync_portfolio_with_alpaca():
                     "last_update": datetime.now().isoformat()
                 }
                 experiment_positions[pos.symbol] = position_data
-                positions_value += float(pos.market_value)
+                current_positions_value += float(pos.market_value)
         
-        # Get cash balance
-        cash_value = float(account.cash)
+        # Calculate experiment cash (CRNX sale proceeds + original remaining cash)
+        # Original investment: $1000, allocated ~$975 to positions, ~$25 remaining cash
+        # CRNX sold for ~$268 (8 shares * $33.58 stop price)
+        # Current experiment cash = original leftover + CRNX sale proceeds
+        original_remaining_cash = 24.52  # From your original data
+        crnx_sale_proceeds = 268.64 if 'CRNX' in missing_positions else 0.0
+        experiment_cash = original_remaining_cash + crnx_sale_proceeds
         
-        # Calculate total portfolio value
-        full_portfolio_value = positions_value + cash_value
+        # Total experiment portfolio value = current positions + experiment cash
+        total_experiment_value = current_positions_value + experiment_cash
         
-        # Calculate returns (assuming $1000 baseline)
+        # Calculate returns based on original $1000 investment
         baseline_investment = 1000.0
-        experiment_return = full_portfolio_value - baseline_investment
-        return_pct = (experiment_return / baseline_investment) * 100
+        total_return = total_experiment_value - baseline_investment
+        total_return_pct = (total_return / baseline_investment)
         
         print(f"Experiment symbols: {experiment_symbols}")
-        print(f"Baseline investment: ${baseline_investment}")
-        print(f"Experiment Portfolio (positions only): ${positions_value:.2f}")
-        print(f"Experiment Cash: ${cash_value:,.2f}")
-        print(f"Total Experiment Value: ${full_portfolio_value:,.2f}")
-        print(f"Return: ${experiment_return:,.2f} ({return_pct:.2f}%)")
+        print(f"Original investment: ${baseline_investment:.2f}")
+        print(f"Current positions value: ${current_positions_value:.2f}")
+        print(f"Experiment cash: ${experiment_cash:.2f}")
+        print(f"Total experiment value: ${total_experiment_value:.2f}")
+        print(f"Total return: ${total_return:.2f} ({total_return_pct:.2%})")
         
         # Create portfolio data structure
         portfolio_data = {
             "positions": experiment_positions,
-            "cash": cash_value,
-            "portfolio_value": full_portfolio_value,
+            "cash": experiment_cash,
+            "portfolio_value": total_experiment_value,
             "total_invested": baseline_investment,
-            "total_return": experiment_return,
-            "total_return_pct": return_pct / 100,
+            "total_return": total_return,
+            "total_return_pct": total_return_pct,
             "positions_count": len(experiment_positions),
             "last_update": datetime.now().isoformat(),
             "experiment_start": "2025-09-08T00:00:00"
@@ -103,12 +108,12 @@ def sync_portfolio_with_alpaca():
         # Update portfolio history CSV
         csv_data = {
             'date': datetime.now().strftime('%Y-%m-%d'),
-            'portfolio_value': full_portfolio_value,
-            'cash': cash_value,
-            'positions_value': positions_value,
+            'portfolio_value': total_experiment_value,
+            'cash': experiment_cash,
+            'positions_value': current_positions_value,
             'total_invested': baseline_investment,
-            'total_return': experiment_return,
-            'total_return_pct': return_pct / 100,
+            'total_return': total_return,
+            'total_return_pct': total_return_pct,
             'positions_count': len(experiment_positions)
         }
         

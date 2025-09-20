@@ -255,7 +255,7 @@ jobs:
     - name: Commit changes
       run: |
         git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+        git config --local user.name "GitHub Action Portfolio Sync"
         git add docs/latest.json
-        git diff --staged --quiet || git commit -m "Auto-update portfolio data from Alpaca"
+        git diff --staged --quiet || git commit -m "Auto-sync portfolio data from Alpaca - CRNX stop loss detected"
         git push

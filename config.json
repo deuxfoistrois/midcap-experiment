@@ -4,7 +4,7 @@
     "experiment_start_date": "2025-09-22",
     "name": "Mid-Cap Catalyst Strategy",
     "max_portfolio_risk": 0.075,
-    "trailing_stop_trigger": 0.10,
+    "trailing_stop_trigger": 0.05,
     "partial_profit_target": 0.50
   },
   "stocks": {

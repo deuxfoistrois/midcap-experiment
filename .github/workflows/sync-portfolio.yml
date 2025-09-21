@@ -56,7 +56,7 @@ jobs:
         with open('docs/latest.json', 'r') as f:
             existing_portfolio = json.load(f)
 
-        # Calculate positions value - FIXED: Convert all string values to float
+        # Calculate positions value
         positions_value = 0.0
         for pos in positions:
             if pos.symbol in ['CRNX', 'STRL', 'OTEX', 'ZION']:
@@ -82,7 +82,7 @@ jobs:
         print(f"Total Value: ${total_experiment_value:.2f}")
         print(f"Total Return: ${total_return:.2f} ({total_return_pct:.2%})")
 
-        # Update positions in portfolio data - FIXED: Convert all values to float
+        # Update positions in portfolio data
         updated_positions = {}
         for pos in positions:
             if pos.symbol in ['CRNX', 'STRL', 'OTEX', 'ZION']:
@@ -91,16 +91,22 @@ jobs:
                 
                 qty = float(pos.qty)
                 market_value = float(pos.market_value)
+                cost_basis = float(pos.cost_basis)
+                
+                # Handle potential None values and use correct attribute names
+                avg_entry_price = float(pos.avg_entry_price) if pos.avg_entry_price else cost_basis / qty
+                unrealized_pl = float(pos.unrealized_pl) if hasattr(pos, 'unrealized_pl') else market_value - cost_basis
+                unrealized_plpc = float(pos.unrealized_plpc) if hasattr(pos, 'unrealized_plpc') else (unrealized_pl / cost_basis) if cost_basis > 0 else 0
                 
                 updated_positions[pos.symbol] = {
                     "symbol": pos.symbol,
                     "shares": qty,
-                    "entry_price": float(pos.avg_entry_price) if pos.avg_entry_price else float(existing_pos.get('entry_price', 0)),
+                    "entry_price": avg_entry_price,
                     "current_price": market_value / qty,
                     "market_value": market_value,
-                    "cost_basis": float(pos.cost_basis),
-                    "unrealized_pnl": float(pos.unrealized_pnl),
-                    "unrealized_pnl_pct": float(pos.unrealized_plpc),
+                    "cost_basis": cost_basis,
+                    "unrealized_pnl": unrealized_pl,
+                    "unrealized_pnl_pct": unrealized_plpc,
                     "catalyst": existing_pos.get('catalyst', 'No catalyst'),
                     "last_update": datetime.now().isoformat()
                 }
@@ -121,15 +127,13 @@ jobs:
         with open('docs/latest.json', 'w') as f:
             json.dump(portfolio_data, f, indent=2)
 
-        # Update CSV file - safer approach
+        # Update CSV file
         try:
             df = pd.read_csv('data/portfolio_history.csv')
             
-            # Check if 2025-09-19 exists in the data
             target_date = '2025-09-19'
             if target_date in df['date'].values:
                 print(f"Updating existing entry for {target_date}")
-                # Update the specific row
                 mask = df['date'] == target_date
                 df.loc[mask, 'cash'] = experiment_cash
                 df.loc[mask, 'portfolio_value'] = total_experiment_value

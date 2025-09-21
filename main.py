@@ -1,29 +1,19 @@
 #!/usr/bin/env python3
-import os
 import json
-import pandas as pd
 import requests
 from datetime import datetime
-from alpaca.trading.client import TradingClient
+from alpaca_client import get_alpaca_client, execute_stop_loss
 
 def load_config():
     """Load configuration from config.json"""
     with open('config.json', 'r') as f:
         return json.load(f)
 
-def get_alpaca_client():
-    """Initialize Alpaca client"""
-    api_key = os.environ.get('ALPACA_API_KEY')
-    secret_key = os.environ.get('ALPACA_SECRET_KEY')
-    base_url = os.environ.get('ALPACA_BASE_URL', 'https://paper-api.alpaca.markets')
-    
-    return TradingClient(api_key, secret_key, paper=True)
-
 def get_current_price(symbol):
-    """Get current stock price from Alpha Vantage with fallbacks"""
+    """Get current stock price"""
+    import os
     alpha_vantage_key = os.environ.get('ALPHA_VANTAGE_API_KEY')
     
-    # Try Alpha Vantage first
     if alpha_vantage_key:
         try:
             url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={alpha_vantage_key}"
@@ -47,236 +37,236 @@ def get_current_price(symbol):
     
     return None
 
-def get_benchmark_prices(config):
-    """Get benchmark ETF prices"""
-    benchmark_data = {}
-    
-    for symbol in config["benchmarks"]:
-        price = get_current_price(symbol)
-        if price:
-            benchmark_data[f"{symbol}_price"] = price
-    
-    return benchmark_data
-
-def calculate_position_metrics(symbol, current_price, config, alpaca_client):
-    """Calculate position metrics for a stock"""
+def calculate_dynamic_stop_loss(symbol, current_price, config):
+    """Calculate dynamic stop loss including trailing stops"""
     stock_config = config["stocks"][symbol]
     portfolio_config = config["portfolio"]
     
-    # Get position from Alpaca
-    try:
-        alpaca_positions = alpaca_client.get_all_positions()
-        alpaca_pos = next((pos for pos in alpaca_positions if pos.symbol == symbol), None)
-    except:
-        alpaca_pos = None
+    entry_price = stock_config["entry_target"]
+    base_stop = stock_config["stop_loss"]
     
-    if alpaca_pos:
-        shares = float(alpaca_pos.qty)
-        entry_price = float(alpaca_pos.avg_entry_price)
-        cost_basis = float(alpaca_pos.cost_basis)
-        market_value = shares * current_price
-    else:
-        # Use config values if not yet purchased
-        shares = stock_config["shares"]
-        entry_price = stock_config["entry_target"]
-        cost_basis = stock_config["allocation"]
-        market_value = shares * current_price
-    
-    unrealized_pnl = market_value - cost_basis
-    unrealized_pnl_pct = unrealized_pnl / cost_basis if cost_basis > 0 else 0
-    
-    # Calculate dynamic stop loss (trailing stop logic)
+    # Calculate gain percentage
     gain_pct = (current_price - entry_price) / entry_price
+    
+    # If gain exceeds 5% trigger threshold, activate trailing stop
     if gain_pct > portfolio_config["trailing_stop_trigger"]:
-        # Activate 8% trailing stop
+        # 8% trailing stop
         trailing_stop = current_price * 0.92
-        current_stop = max(stock_config["stop_loss"], trailing_stop)
+        dynamic_stop = max(base_stop, trailing_stop)
+        stop_type = "trailing"
     else:
-        current_stop = stock_config["stop_loss"]
+        dynamic_stop = base_stop
+        stop_type = "fixed"
     
     return {
-        "symbol": symbol,
-        "shares": shares,
+        "stop_price": dynamic_stop,
+        "stop_type": stop_type,
+        "gain_pct": gain_pct,
         "entry_price": entry_price,
-        "current_price": current_price,
-        "market_value": market_value,
-        "cost_basis": cost_basis,
-        "unrealized_pnl": unrealized_pnl,
-        "unrealized_pnl_pct": unrealized_pnl_pct,
-        "stop_loss": current_stop,
-        "target_1": stock_config["target_1"],
-        "target_2": stock_config["target_2"],
-        "catalyst": stock_config["catalyst"],
-        "risk_level": stock_config["risk_level"],
-        "sector": stock_config["sector"],
-        "last_update": datetime.now().isoformat()
+        "base_stop": base_stop
     }
 
-def check_stop_losses(config, alpaca_client):
-    """Check if any stop losses should trigger"""
-    stop_losses_triggered = []
+def check_all_stop_losses():
+    """Check all positions for stop loss triggers"""
+    config = load_config()
+    client = get_alpaca_client()
     
+    print("=== Checking Stop Losses ===")
+    
+    # Get current Alpaca positions
     try:
-        alpaca_positions = alpaca_client.get_all_positions()
-    except:
-        alpaca_positions = []
+        alpaca_positions = client.get_all_positions()
+        current_positions = {pos.symbol: pos for pos in alpaca_positions if pos.symbol in config["stocks"]}
+    except Exception as e:
+        print(f"Error getting Alpaca positions: {e}")
+        return {"status": "error", "error": str(e)}
+    
+    stop_loss_alerts = []
     
     for symbol in config["stocks"].keys():
+        # Check if position still exists
+        if symbol not in current_positions:
+            print(f"Position {symbol} not found in Alpaca - already stopped out")
+            continue
+        
+        # Get current price
         current_price = get_current_price(symbol)
         if not current_price:
+            print(f"Could not get current price for {symbol}")
             continue
-            
-        alpaca_pos = next((pos for pos in alpaca_positions if pos.symbol == symbol), None)
-        if not alpaca_pos:
-            continue
-            
-        position_data = calculate_position_metrics(symbol, current_price, config, alpaca_client)
+        
+        # Calculate dynamic stop loss
+        stop_data = calculate_dynamic_stop_loss(symbol, current_price, config)
+        
+        print(f"{symbol}: ${current_price:.2f} | Stop: ${stop_data['stop_price']:.2f} ({stop_data['stop_type']}) | Gain: {stop_data['gain_pct']:.2%}")
         
         # Check if stop loss should trigger
-        if current_price <= position_data["stop_loss"]:
-            print(f"STOP LOSS TRIGGERED for {symbol}: ${current_price:.2f} <= ${position_data['stop_loss']:.2f}")
+        if current_price <= stop_data["stop_price"]:
+            print(f"STOP LOSS TRIGGERED for {symbol}")
             
-            stop_losses_triggered.append({
+            stop_loss_alerts.append({
                 "symbol": symbol,
-                "trigger_price": current_price,
-                "stop_level": position_data["stop_loss"],
-                "shares": float(alpaca_pos.qty),
-                "estimated_proceeds": float(alpaca_pos.qty) * current_price,
+                "current_price": current_price,
+                "stop_price": stop_data["stop_price"],
+                "stop_type": stop_data["stop_type"],
+                "trigger_reason": f"Price ${current_price:.2f} <= Stop ${stop_data['stop_price']:.2f}",
+                "shares": float(current_positions[symbol].qty),
+                "estimated_proceeds": float(current_positions[symbol].qty) * current_price,
                 "timestamp": datetime.now().isoformat()
             })
     
-    return stop_losses_triggered
+    return {
+        "status": "check_complete",
+        "stop_loss_alerts": stop_loss_alerts,
+        "positions_checked": len(current_positions),
+        "timestamp": datetime.now().isoformat()
+    }
 
-def update_portfolio_data():
-    """Main portfolio update function"""
-    print("=== Portfolio Update Starting ===")
+def execute_triggered_stops():
+    """Execute any stop losses that have been triggered"""
+    print("=== Executing Triggered Stop Losses ===")
     
-    # Load configuration
+    # Check for triggers
+    check_result = check_all_stop_losses()
+    
+    if check_result["status"] != "check_complete":
+        print(f"Stop loss check failed: {check_result}")
+        return check_result
+    
+    if not check_result["stop_loss_alerts"]:
+        print("No stop losses triggered")
+        return {"status": "no_triggers", "message": "No stop losses need execution"}
+    
+    # Execute stop losses
+    execution_results = []
+    
+    for alert in check_result["stop_loss_alerts"]:
+        symbol = alert["symbol"]
+        reason = f"Stop loss triggered: {alert['trigger_reason']}"
+        
+        print(f"Executing stop loss for {symbol}: {reason}")
+        
+        execution_result = execute_stop_loss(symbol, reason)
+        execution_results.append(execution_result)
+        
+        # Add alert data to execution result
+        execution_result["alert_data"] = alert
+    
+    return {
+        "status": "execution_complete",
+        "triggers_found": len(check_result["stop_loss_alerts"]),
+        "executions": execution_results,
+        "timestamp": datetime.now().isoformat()
+    }
+
+def monitor_risk_levels():
+    """Monitor portfolio risk levels and alert if approaching limits"""
     config = load_config()
-    baseline_investment = config["portfolio"]["baseline_investment"]
-    
-    print(f"Baseline Investment: ${baseline_investment:,.2f}")
-    print(f"Portfolio Stocks: {list(config['stocks'].keys())}")
-    
-    # Initialize Alpaca client
-    alpaca_client = get_alpaca_client()
+    client = get_alpaca_client()
     
     try:
-        account = alpaca_client.get_account()
-        cash = float(account.cash)
-        print(f"Connected to Alpaca. Cash: ${cash:,.2f}")
-    except Exception as e:
-        print(f"Alpaca connection failed: {e}")
-        cash = 0.0
-    
-    # Check for stop losses
-    stop_losses = check_stop_losses(config, alpaca_client)
-    if stop_losses:
-        print(f"Stop losses detected: {len(stop_losses)}")
-        for sl in stop_losses:
-            print(f"  {sl['symbol']}: {sl['shares']:.3f} shares @ ${sl['trigger_price']:.2f}")
-    
-    # Calculate positions
-    positions = {}
-    total_positions_value = 0
-    
-    for symbol in config["stocks"].keys():
-        current_price = get_current_price(symbol)
-        if current_price:
-            position_data = calculate_position_metrics(symbol, current_price, config, alpaca_client)
-            positions[symbol] = position_data
-            total_positions_value += position_data["market_value"]
-            
-            print(f"{symbol}: ${current_price:.2f} | P&L: ${position_data['unrealized_pnl']:.2f} ({position_data['unrealized_pnl_pct']:.2%})")
-        else:
-            print(f"Warning: Could not get price for {symbol}")
-    
-    # Calculate portfolio totals
-    portfolio_value = total_positions_value + cash
-    total_return = portfolio_value - baseline_investment
-    total_return_pct = total_return / baseline_investment
-    
-    # Get benchmark prices
-    benchmark_data = get_benchmark_prices(config)
-    
-    # Create portfolio data
-    portfolio_data = {
-        "positions": positions,
-        "cash": cash,
-        "portfolio_value": portfolio_value,
-        "total_invested": baseline_investment,
-        "total_return": total_return,
-        "total_return_pct": total_return_pct,
-        "positions_count": len([pos for pos in positions.values() if pos["shares"] > 0]),
-        "last_update": datetime.now().isoformat(),
-        "experiment_start": config["portfolio"]["experiment_start_date"],
-        "stop_losses_triggered": stop_losses,
-        **benchmark_data
-    }
-    
-    print(f"\nPortfolio Summary:")
-    print(f"Portfolio Value: ${portfolio_value:,.2f}")
-    print(f"Total Return: ${total_return:,.2f} ({total_return_pct:.2%})")
-    print(f"Cash: ${cash:,.2f}")
-    print(f"Positions: {len(positions)}")
-    
-    # Save to JSON file
-    os.makedirs("docs", exist_ok=True)
-    with open(config["files"]["latest_json"], 'w') as f:
-        json.dump(portfolio_data, f, indent=2)
-    print(f"Portfolio data saved to {config['files']['latest_json']}")
-    
-    # Save to CSV
-    save_to_csv(portfolio_data, config)
-    
-    print("=== Portfolio Update Completed ===")
-    return portfolio_data
-
-def save_to_csv(portfolio_data, config):
-    """Save portfolio data to CSV history"""
-    os.makedirs("data", exist_ok=True)
-    
-    # Create CSV record
-    csv_record = {
-        "date": datetime.now().strftime("%Y-%m-%d"),
-        "portfolio_value": portfolio_data["portfolio_value"],
-        "cash": portfolio_data["cash"],
-        "positions_value": sum([pos["market_value"] for pos in portfolio_data["positions"].values()]),
-        "total_invested": portfolio_data["total_invested"],
-        "total_return": portfolio_data["total_return"],
-        "total_return_pct": portfolio_data["total_return_pct"],
-        "positions_count": portfolio_data["positions_count"],
-    }
-    
-    # Add benchmark prices
-    for benchmark in config["benchmarks"]:
-        key = f"{benchmark}_price"
-        csv_record[key] = portfolio_data.get(key, 0.0)
-    
-    # Add individual stock prices and PnL
-    for symbol, position in portfolio_data["positions"].items():
-        csv_record[f"{symbol}_price"] = position["current_price"]
-        csv_record[f"{symbol}_pnl"] = position["unrealized_pnl"]
-        csv_record[f"{symbol}_pnl_pct"] = position["unrealized_pnl_pct"]
-    
-    # Read existing CSV or create new
-    csv_file = config["files"]["portfolio_history"]
-    if os.path.exists(csv_file):
-        df = pd.read_csv(csv_file)
+        account = client.get_account()
+        portfolio_value = float(account.equity)
+        baseline_investment = config["portfolio"]["baseline_investment"]
+        max_risk = config["portfolio"]["max_portfolio_risk"]
         
-        # Update today's record or append new
-        today = datetime.now().strftime("%Y-%m-%d")
-        if today in df['date'].values:
-            for key, value in csv_record.items():
-                df.loc[df['date'] == today, key] = value
-        else:
-            df = pd.concat([df, pd.DataFrame([csv_record])], ignore_index=True)
-    else:
-        # Create new CSV
-        df = pd.DataFrame([csv_record])
+        current_loss = baseline_investment - portfolio_value
+        current_loss_pct = current_loss / baseline_investment
+        
+        risk_alerts = []
+        
+        # Check if approaching maximum risk
+        if current_loss_pct > max_risk * 0.8:  # 80% of max risk
+            risk_alerts.append({
+                "type": "risk_warning",
+                "message": f"Portfolio loss approaching maximum risk limit",
+                "current_loss": current_loss,
+                "current_loss_pct": current_loss_pct,
+                "max_risk_pct": max_risk,
+                "threshold_reached": "80% of maximum risk"
+            })
+        
+        # Check if maximum risk exceeded
+        if current_loss_pct > max_risk:
+            risk_alerts.append({
+                "type": "risk_exceeded",
+                "message": f"Portfolio loss EXCEEDS maximum risk limit",
+                "current_loss": current_loss,
+                "current_loss_pct": current_loss_pct,
+                "max_risk_pct": max_risk,
+                "action_required": "IMMEDIATE RISK MANAGEMENT REQUIRED"
+            })
+        
+        return {
+            "status": "risk_monitoring_complete",
+            "portfolio_value": portfolio_value,
+            "baseline_investment": baseline_investment,
+            "current_loss": current_loss,
+            "current_loss_pct": current_loss_pct,
+            "max_risk_pct": max_risk,
+            "risk_alerts": risk_alerts,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+def generate_stop_loss_report():
+    """Generate comprehensive stop loss monitoring report"""
+    print("=== Generating Stop Loss Report ===")
     
-    df.to_csv(csv_file, index=False)
-    print(f"Portfolio history saved to {csv_file}")
+    # Check stop losses
+    stop_check = check_all_stop_losses()
+    
+    # Monitor risk levels
+    risk_monitoring = monitor_risk_levels()
+    
+    # Combine results
+    report = {
+        "report_timestamp": datetime.now().isoformat(),
+        "stop_loss_check": stop_check,
+        "risk_monitoring": risk_monitoring,
+        "summary": {
+            "stop_losses_triggered": len(stop_check.get("stop_loss_alerts", [])),
+            "risk_alerts": len(risk_monitoring.get("risk_alerts", [])),
+            "action_required": False
+        }
+    }
+    
+    # Determine if action is required
+    if stop_check.get("stop_loss_alerts") or risk_monitoring.get("risk_alerts"):
+        report["summary"]["action_required"] = True
+    
+    return report
 
 if __name__ == "__main__":
-    update_portfolio_data()
+    # Generate and display report
+    report = generate_stop_loss_report()
+    
+    print("\n=== STOP LOSS MONITORING REPORT ===")
+    print(f"Report Time: {report['report_timestamp']}")
+    print(f"Stop Losses Triggered: {report['summary']['stop_losses_triggered']}")
+    print(f"Risk Alerts: {report['summary']['risk_alerts']}")
+    print(f"Action Required: {report['summary']['action_required']}")
+    
+    if report["summary"]["action_required"]:
+        print("\n🚨 ALERTS:")
+        
+        # Show stop loss alerts
+        for alert in report["stop_loss_check"].get("stop_loss_alerts", []):
+            print(f"  STOP LOSS: {alert['symbol']} - {alert['trigger_reason']}")
+        
+        # Show risk alerts
+        for alert in report["risk_monitoring"].get("risk_alerts", []):
+            print(f"  RISK: {alert['message']}")
+    else:
+        print("\n✅ All systems normal - no action required")
+    
+    # Save report to file
+    with open('data/stop_loss_report.json', 'w') as f:
+        json.dump(report, f, indent=2)
+    print(f"\nReport saved to data/stop_loss_report.json")

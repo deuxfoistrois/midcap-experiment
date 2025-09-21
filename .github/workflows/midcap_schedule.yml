@@ -1,9 +1,9 @@
 name: Mid-Cap Portfolio Daily Update
+
 on:
   schedule:
-    # Run at 8:20 PM UTC (4:20 PM EST, after market close)
-    - cron: '20 20 * * 1-5'
-  workflow_dispatch:  # Allow manual runs
+    - cron: '30 21 * * 1-5'  # 9:30 PM UTC (after market close)
+  workflow_dispatch:
 
 jobs:
   update-portfolio:
@@ -12,66 +12,338 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        fetch-depth: 0
-    
+      
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
-    
+        
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    
+        pip install pandas requests alpaca-py yfinance
+        
     - name: Run portfolio update
       env:
-        ALPHAVANTAGE_API_KEY: ${{ secrets.ALPHAVANTAGE_API_KEY }}
-        ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
+        ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
         ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
         ALPACA_BASE_URL: ${{ secrets.ALPACA_BASE_URL }}
+        ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
       run: |
-        python main.py
-    
-    - name: Pull latest changes and commit
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git pull origin main --rebase --autostash
-        git add .
-        git diff --staged --quiet || git commit -m "📈 Daily portfolio update $(date +'%Y-%m-%d')"
-        git push origin main
+        python3 << 'EOF'
+        import os
+        import sys
+        import json
+        import pandas as pd
+        import requests
+        from datetime import datetime, timedelta
+        from alpaca.trading.client import TradingClient
+        from alpaca.trading.requests import MarketOrderRequest, StopOrderRequest
+        from alpaca.trading.enums import OrderSide, TimeInForce
 
-  benchmark-update:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install yfinance pandas
-    
-    - name: Update benchmark data
-      run: |
-        python update_benchmarks.py
-    
-    - name: Pull latest and commit benchmark updates
+        # Portfolio Configuration
+        BASELINE_INVESTMENT = 100000.0
+        EXPERIMENT_START_DATE = "2025-09-22"
+
+        PORTFOLIO_STOCKS = {
+            "CLS": {
+                "name": "Celestica Inc.",
+                "allocation": 25000.0,
+                "entry_target": 64.0,
+                "stop_loss": 60.0,
+                "target_1": 75.0,
+                "target_2": 82.0,
+                "sector": "Industrial Technology",
+                "catalyst": "Q3 Earnings + Investor Day Oct 28",
+                "risk_level": "Conservative-Moderate"
+            },
+            "CYBR": {
+                "name": "CyberArk Software Ltd.",
+                "allocation": 22500.0,
+                "entry_target": 230.0,
+                "stop_loss": 210.0,
+                "target_1": 275.0,
+                "target_2": 299.0,
+                "sector": "Technology",
+                "catalyst": "AI Security Integration + Q3 Momentum",
+                "risk_level": "Moderate"
+            },
+            "CRSP": {
+                "name": "CRISPR Therapeutics AG",
+                "allocation": 25000.0,
+                "entry_target": 47.5,
+                "stop_loss": 43.5,
+                "target_1": 56.0,
+                "target_2": 62.0,
+                "sector": "Healthcare/Biotech",
+                "catalyst": "Q4 Pipeline Readouts + Casgevy Expansion",
+                "risk_level": "Aggressive"
+            },
+            "CHDN": {
+                "name": "Churchill Downs Inc.",
+                "allocation": 27500.0,
+                "entry_target": 132.5,
+                "stop_loss": 125.0,
+                "target_1": 145.0,
+                "target_2": 150.0,
+                "sector": "Consumer Discretionary",
+                "catalyst": "Q3 Earnings + Sports Betting Expansion",
+                "risk_level": "Conservative"
+            }
+        }
+
+        print("=== Mid-Cap Portfolio Daily Update ===")
+        print(f"Baseline Investment: ${BASELINE_INVESTMENT:,.2f}")
+        print(f"Portfolio Stocks: {list(PORTFOLIO_STOCKS.keys())}")
+
+        # Initialize Alpaca client
+        api_key = os.environ.get('ALPACA_API_KEY')
+        secret_key = os.environ.get('ALPACA_SECRET_KEY')
+        base_url = os.environ.get('ALPACA_BASE_URL', 'https://paper-api.alpaca.markets')
+        alpha_vantage_key = os.environ.get('ALPHA_VANTAGE_API_KEY')
+
+        print(f"Connecting to Alpaca: {base_url}")
+        client = TradingClient(api_key, secret_key, paper=True)
+        account = client.get_account()
+        print(f"Connected! Account status: {account.status}")
+
+        def get_current_price(symbol):
+            """Get current stock price from Alpha Vantage with fallbacks"""
+            try:
+                # Try Alpha Vantage first
+                if alpha_vantage_key:
+                    url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={alpha_vantage_key}"
+                    response = requests.get(url, timeout=10)
+                    data = response.json()
+                    
+                    if "Global Quote" in data:
+                        return float(data["Global Quote"]["05. price"])
+            except Exception as e:
+                print(f"Alpha Vantage failed for {symbol}: {e}")
+            
+            try:
+                # Fallback to Yahoo Finance via yfinance
+                import yfinance as yf
+                ticker = yf.Ticker(symbol)
+                hist = ticker.history(period="1d")
+                if not hist.empty:
+                    return float(hist['Close'].iloc[-1])
+            except Exception as e:
+                print(f"YFinance failed for {symbol}: {e}")
+            
+            try:
+                # Final fallback to Alpaca positions
+                positions = client.get_all_positions()
+                for pos in positions:
+                    if pos.symbol == symbol:
+                        return float(pos.market_value) / float(pos.qty)
+            except Exception as e:
+                print(f"Alpaca fallback failed for {symbol}: {e}")
+            
+            return None
+
+        def get_benchmark_prices():
+            """Get benchmark ETF prices"""
+            benchmarks = ["SPY", "MDY", "IWM", "QQQ"]
+            benchmark_data = {}
+            
+            for symbol in benchmarks:
+                price = get_current_price(symbol)
+                if price:
+                    benchmark_data[f"{symbol}_price"] = price
+            
+            return benchmark_data
+
+        def calculate_position_metrics(symbol, current_price):
+            """Calculate position metrics for a stock"""
+            stock_config = PORTFOLIO_STOCKS[symbol]
+            
+            # Get position from Alpaca
+            alpaca_positions = client.get_all_positions()
+            alpaca_pos = next((pos for pos in alpaca_positions if pos.symbol == symbol), None)
+            
+            if alpaca_pos:
+                shares = float(alpaca_pos.qty)
+                entry_price = float(alpaca_pos.avg_entry_price)
+                cost_basis = float(alpaca_pos.cost_basis)
+                market_value = shares * current_price
+            else:
+                # Calculate based on allocation if not yet purchased
+                shares = stock_config["allocation"] / stock_config["entry_target"]
+                entry_price = stock_config["entry_target"]
+                cost_basis = stock_config["allocation"]
+                market_value = shares * current_price
+            
+            unrealized_pnl = market_value - cost_basis
+            unrealized_pnl_pct = unrealized_pnl / cost_basis if cost_basis > 0 else 0
+            
+            # Calculate stop loss levels (8% trailing stop or original stop)
+            gain_pct = (current_price - entry_price) / entry_price
+            if gain_pct > 0.10:  # 10% gain triggers trailing stop
+                trailing_stop = current_price * 0.92  # 8% trailing
+                current_stop = max(stock_config["stop_loss"], trailing_stop)
+            else:
+                current_stop = stock_config["stop_loss"]
+            
+            return {
+                "symbol": symbol,
+                "shares": shares,
+                "entry_price": entry_price,
+                "current_price": current_price,
+                "market_value": market_value,
+                "cost_basis": cost_basis,
+                "unrealized_pnl": unrealized_pnl,
+                "unrealized_pnl_pct": unrealized_pnl_pct,
+                "stop_loss": current_stop,
+                "target_1": stock_config["target_1"],
+                "target_2": stock_config["target_2"],
+                "catalyst": stock_config["catalyst"],
+                "risk_level": stock_config["risk_level"],
+                "sector": stock_config["sector"],
+                "last_update": datetime.now().isoformat()
+            }
+
+        def check_stop_losses():
+            """Check if any stop losses should trigger"""
+            stop_losses_triggered = []
+            alpaca_positions = client.get_all_positions()
+            
+            for symbol in PORTFOLIO_STOCKS.keys():
+                current_price = get_current_price(symbol)
+                if not current_price:
+                    continue
+                    
+                alpaca_pos = next((pos for pos in alpaca_positions if pos.symbol == symbol), None)
+                if not alpaca_pos:
+                    continue
+                    
+                position_data = calculate_position_metrics(symbol, current_price)
+                
+                # Check if stop loss should trigger
+                if current_price <= position_data["stop_loss"]:
+                    print(f"🚨 STOP LOSS TRIGGERED for {symbol}: ${current_price:.2f} <= ${position_data['stop_loss']:.2f}")
+                    
+                    stop_losses_triggered.append({
+                        "symbol": symbol,
+                        "trigger_price": current_price,
+                        "stop_level": position_data["stop_loss"],
+                        "shares": float(alpaca_pos.qty),
+                        "estimated_proceeds": float(alpaca_pos.qty) * current_price
+                    })
+            
+            return stop_losses_triggered
+
+        # Get current account balance
+        cash = float(account.cash)
+        print(f"Current Cash: ${cash:,.2f}")
+
+        # Calculate positions
+        positions = {}
+        total_positions_value = 0
+        stop_losses = check_stop_losses()
+
+        for symbol in PORTFOLIO_STOCKS.keys():
+            current_price = get_current_price(symbol)
+            if current_price:
+                position_data = calculate_position_metrics(symbol, current_price)
+                positions[symbol] = position_data
+                total_positions_value += position_data["market_value"]
+                
+                print(f"{symbol}: ${current_price:.2f} | P&L: ${position_data['unrealized_pnl']:.2f} ({position_data['unrealized_pnl_pct']:.2%})")
+            else:
+                print(f"Warning: Could not get price for {symbol}")
+
+        # Check for stop losses
+        if stop_losses:
+            print(f"\n🚨 STOP LOSSES DETECTED: {len(stop_losses)}")
+            for sl in stop_losses:
+                print(f"  {sl['symbol']}: {sl['shares']:.3f} shares @ ${sl['trigger_price']:.2f}")
+
+        # Calculate portfolio totals
+        portfolio_value = total_positions_value + cash
+        total_return = portfolio_value - BASELINE_INVESTMENT
+        total_return_pct = total_return / BASELINE_INVESTMENT
+
+        # Get benchmark prices
+        benchmark_data = get_benchmark_prices()
+
+        # Create portfolio data
+        portfolio_data = {
+            "positions": positions,
+            "cash": cash,
+            "portfolio_value": portfolio_value,
+            "total_invested": BASELINE_INVESTMENT,
+            "total_return": total_return,
+            "total_return_pct": total_return_pct,
+            "positions_count": len([pos for pos in positions.values() if pos["shares"] > 0]),
+            "last_update": datetime.now().isoformat(),
+            "experiment_start": EXPERIMENT_START_DATE,
+            "stop_losses_triggered": stop_losses,
+            **benchmark_data
+        }
+
+        print(f"\n📊 PORTFOLIO SUMMARY:")
+        print(f"Portfolio Value: ${portfolio_value:,.2f}")
+        print(f"Total Return: ${total_return:,.2f} ({total_return_pct:.2%})")
+        print(f"Cash: ${cash:,.2f}")
+        print(f"Positions: {len(positions)}")
+
+        # Save to JSON file
+        os.makedirs("docs", exist_ok=True)
+        with open('docs/latest.json', 'w') as f:
+            json.dump(portfolio_data, f, indent=2)
+        print("✅ JSON file updated")
+
+        # Save to CSV
+        os.makedirs("data", exist_ok=True)
+        
+        # Create CSV record
+        csv_record = {
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "portfolio_value": portfolio_value,
+            "cash": cash,
+            "positions_value": total_positions_value,
+            "total_invested": BASELINE_INVESTMENT,
+            "total_return": total_return,
+            "total_return_pct": total_return_pct,
+            "positions_count": len(positions),
+        }
+        
+        # Add benchmark prices
+        for key, value in benchmark_data.items():
+            csv_record[key] = value
+        
+        # Add individual stock prices and PnL
+        for symbol, position in positions.items():
+            csv_record[f"{symbol}_price"] = position["current_price"]
+            csv_record[f"{symbol}_pnl"] = position["unrealized_pnl"]
+            csv_record[f"{symbol}_pnl_pct"] = position["unrealized_pnl_pct"]
+        
+        # Read existing CSV or create new
+        csv_file = "data/portfolio_history.csv"
+        if os.path.exists(csv_file):
+            df = pd.read_csv(csv_file)
+            
+            # Update today's record or append new
+            today = datetime.now().strftime("%Y-%m-%d")
+            if today in df['date'].values:
+                for key, value in csv_record.items():
+                    df.loc[df['date'] == today, key] = value
+            else:
+                df = pd.concat([df, pd.DataFrame([csv_record])], ignore_index=True)
+        else:
+            # Create new CSV
+            df = pd.DataFrame([csv_record])
+        
+        df.to_csv(csv_file, index=False)
+        print("✅ CSV file updated")
+
+        print("=== Portfolio Update Completed Successfully ===")
+        EOF
+
+    - name: Commit changes
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git pull origin main --rebase --autostash
-        git add data/benchmark_*.csv
-        git diff --staged --quiet || git commit -m "📊 Benchmark data update $(date +'%Y-%m-%d')"
-        git push origin main
+        git add docs/latest.json data/portfolio_history.csv
+        git commit -m "Daily portfolio update - $(date)" || exit 0
+        git push

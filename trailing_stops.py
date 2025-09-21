@@ -1,277 +1,296 @@
 #!/usr/bin/env python3
-"""
-Trailing Stop Loss Manager for Mid-Cap Experiment
-Advanced stop-loss management with multiple algorithms
-"""
-
 import json
-import pandas as pd
-from datetime import datetime, timedelta
-from typing import Dict, List, Tuple, Optional
-import logging
+import requests
+from datetime import datetime
+from alpaca_client import get_alpaca_client
 
-logger = logging.getLogger(__name__)
+def load_config():
+    """Load configuration from config.json"""
+    with open('config.json', 'r') as f:
+        return json.load(f)
 
-class TrailingStopManager:
-    def __init__(self, config_file='config.json'):
-        """Initialize trailing stop manager"""
-        with open(config_file, 'r') as f:
-            self.config = json.load(f)
-        
-        self.stop_config = self.config['risk_management']['stop_loss']
-        self.stop_history_file = 'data/stop_loss_history.csv'
-        self.alerts_file = 'data/stop_alerts.json'
-        
-    def calculate_initial_stop(self, entry_price: float) -> float:
-        """Calculate initial stop loss level"""
-        return entry_price * (1 - self.stop_config['initial_stop_pct'])
+def get_current_price(symbol):
+    """Get current stock price"""
+    import os
+    alpha_vantage_key = os.environ.get('ALPHA_VANTAGE_API_KEY')
     
-    def calculate_trailing_stop(self, highest_price: float) -> float:
-        """Calculate trailing stop loss level"""
-        return highest_price * (1 - self.stop_config['trailing_stop_pct'])
-    
-    def should_activate_trailing(self, entry_price: float, current_price: float) -> bool:
-        """Check if trailing stop should be activated"""
-        gain_pct = (current_price - entry_price) / entry_price
-        return gain_pct >= self.stop_config['activation_gain_pct']
-    
-    def update_stop_levels(self, positions: Dict) -> Dict:
-        """Update stop levels for all positions"""
-        updated_positions = {}
-        
-        for symbol, position in positions.items():
-            updated_position = position.copy()
-            
-            entry_price = position['entry_price']
-            current_price = position.get('current_price', entry_price)
-            highest_price = position.get('highest_price', entry_price)
-            
-            # Update highest price if current is higher
-            if current_price > highest_price:
-                highest_price = current_price
-                updated_position['highest_price'] = highest_price
-            
-            # Determine stop type and level
-            if self.should_activate_trailing(entry_price, current_price):
-                # Use trailing stop
-                stop_level = self.calculate_trailing_stop(highest_price)
-                stop_type = "trailing"
-                
-                # Ensure trailing stop never goes below initial stop
-                initial_stop = self.calculate_initial_stop(entry_price)
-                stop_level = max(stop_level, initial_stop)
-            else:
-                # Use initial stop
-                stop_level = self.calculate_initial_stop(entry_price)
-                stop_type = "initial"
-            
-            # Update position with stop data
-            updated_position.update({
-                'stop_level': stop_level,
-                'stop_type': stop_type,
-                'highest_price': highest_price,
-                'stop_distance': (current_price - stop_level) / current_price,
-                'stop_distance_dollars': current_price - stop_level
-            })
-            
-            updated_positions[symbol] = updated_position
-        
-        return updated_positions
-    
-    def check_stop_violations(self, positions: Dict) -> List[Dict]:
-        """Check for stop loss violations"""
-        violations = []
-        
-        for symbol, position in positions.items():
-            current_price = position.get('current_price')
-            stop_level = position.get('stop_level')
-            
-            if current_price and stop_level and current_price <= stop_level:
-                violation = {
-                    'symbol': symbol,
-                    'current_price': current_price,
-                    'stop_level': stop_level,
-                    'stop_type': position.get('stop_type', 'unknown'),
-                    'violation_amount': stop_level - current_price,
-                    'violation_pct': (stop_level - current_price) / stop_level,
-                    'entry_price': position['entry_price'],
-                    'shares': position['shares'],
-                    'position_value': position.get('market_value', 0),
-                    'timestamp': datetime.now().isoformat()
-                }
-                violations.append(violation)
-        
-        return violations
-    
-    def calculate_risk_metrics(self, positions: Dict) -> Dict:
-        """Calculate portfolio risk metrics related to stops"""
-        total_portfolio_value = sum(pos.get('market_value', 0) for pos in positions.values())
-        
-        if total_portfolio_value == 0:
-            return {}
-        
-        # Calculate weighted average stop distance
-        weighted_stop_distance = 0
-        total_at_risk = 0
-        
-        for symbol, position in positions.items():
-            market_value = position.get('market_value', 0)
-            stop_distance = position.get('stop_distance', 0)
-            
-            if market_value > 0:
-                weight = market_value / total_portfolio_value
-                weighted_stop_distance += weight * stop_distance
-                
-                # Calculate amount at risk (from current price to stop)
-                current_price = position.get('current_price', 0)
-                stop_level = position.get('stop_level', 0)
-                shares = position.get('shares', 0)
-                
-                if current_price > 0 and stop_level > 0:
-                    at_risk = shares * (current_price - stop_level)
-                    total_at_risk += max(0, at_risk)
-        
-        return {
-            'weighted_avg_stop_distance': weighted_stop_distance,
-            'total_amount_at_risk': total_at_risk,
-            'portfolio_risk_pct': total_at_risk / total_portfolio_value if total_portfolio_value > 0 else 0,
-            'positions_with_stops': len([p for p in positions.values() if p.get('stop_level', 0) > 0])
-        }
-    
-    def generate_stop_alerts(self, positions: Dict) -> List[Dict]:
-        """Generate alerts for positions approaching stop levels"""
-        alerts = []
-        warning_thresholds = [0.02, 0.05, 0.10]  # 2%, 5%, 10% away from stop
-        
-        for symbol, position in positions.items():
-            current_price = position.get('current_price', 0)
-            stop_level = position.get('stop_level', 0)
-            
-            if current_price > 0 and stop_level > 0:
-                distance_to_stop = (current_price - stop_level) / current_price
-                
-                for threshold in warning_thresholds:
-                    if distance_to_stop <= threshold:
-                        alert = {
-                            'symbol': symbol,
-                            'alert_type': f'STOP_WARNING_{int(threshold*100)}PCT',
-                            'current_price': current_price,
-                            'stop_level': stop_level,
-                            'distance_to_stop': distance_to_stop,
-                            'stop_type': position.get('stop_type', 'unknown'),
-                            'severity': 'HIGH' if threshold <= 0.02 else 'MEDIUM' if threshold <= 0.05 else 'LOW',
-                            'timestamp': datetime.now().isoformat(),
-                            'message': f"{symbol} is {distance_to_stop:.2%} away from {position.get('stop_type', 'stop')} stop at ${stop_level:.2f}"
-                        }
-                        alerts.append(alert)
-                        break  # Only add one alert per position (highest severity)
-        
-        return alerts
-    
-    def save_stop_execution(self, trade_record: Dict):
-        """Save stop loss execution to history"""
-        # Add additional stop-specific fields
-        trade_record.update({
-            'stop_execution_time': datetime.now().isoformat(),
-            'execution_type': 'AUTOMATIC_STOP',
-            'slippage': 0,  # Would be calculated if using real execution
-        })
-        
-        # Save to CSV
-        df_new = pd.DataFrame([trade_record])
-        
+    if alpha_vantage_key:
         try:
-            if pd.io.common.file_exists(self.stop_history_file):
-                df_existing = pd.read_csv(self.stop_history_file)
-                df_combined = pd.concat([df_existing, df_new], ignore_index=True)
-            else:
-                df_combined = df_new
+            url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={alpha_vantage_key}"
+            response = requests.get(url, timeout=10)
+            data = response.json()
             
-            df_combined.to_csv(self.stop_history_file, index=False)
-            logger.info(f"Stop execution saved: {trade_record['symbol']} at ${trade_record['price']:.2f}")
-            
+            if "Global Quote" in data:
+                return float(data["Global Quote"]["05. price"])
         except Exception as e:
-            logger.error(f"Error saving stop execution: {e}")
+            print(f"Alpha Vantage failed for {symbol}: {e}")
     
-    def save_alerts(self, alerts: List[Dict]):
-        """Save stop alerts to file"""
-        if alerts:
-            with open(self.alerts_file, 'w') as f:
-                json.dump({
-                    'timestamp': datetime.now().isoformat(),
-                    'alerts': alerts
-                }, f, indent=2)
+    # Fallback to Yahoo Finance
+    try:
+        import yfinance as yf
+        ticker = yf.Ticker(symbol)
+        hist = ticker.history(period="1d")
+        if not hist.empty:
+            return float(hist['Close'].iloc[-1])
+    except Exception as e:
+        print(f"YFinance failed for {symbol}: {e}")
     
-    def get_stop_performance_stats(self) -> Dict:
-        """Get performance statistics for stop losses"""
-        try:
-            if not pd.io.common.file_exists(self.stop_history_file):
-                return {}
-            
-            df = pd.read_csv(self.stop_history_file)
-            
-            if df.empty:
-                return {}
-            
-            stats = {
-                'total_stops_executed': len(df),
-                'profitable_stops': len(df[df['pnl'] > 0]),
-                'losing_stops': len(df[df['pnl'] <= 0]),
-                'avg_pnl': df['pnl'].mean(),
-                'avg_pnl_pct': df['pnl_pct'].mean(),
-                'avg_days_held': df['days_held'].mean(),
-                'best_stop': df['pnl'].max(),
-                'worst_stop': df['pnl'].min(),
-                'stop_success_rate': len(df[df['pnl'] > 0]) / len(df) if len(df) > 0 else 0
+    return None
+
+def calculate_trailing_stop(symbol, current_price, config):
+    """Calculate trailing stop level for a position"""
+    stock_config = config["stocks"][symbol]
+    portfolio_config = config["portfolio"]
+    
+    entry_price = stock_config["entry_target"]
+    base_stop = stock_config["stop_loss"]
+    trailing_trigger = portfolio_config["trailing_stop_trigger"]
+    
+    # Calculate gain percentage from entry
+    gain_pct = (current_price - entry_price) / entry_price
+    
+    trailing_data = {
+        "symbol": symbol,
+        "current_price": current_price,
+        "entry_price": entry_price,
+        "base_stop": base_stop,
+        "gain_pct": gain_pct,
+        "trailing_active": False,
+        "trailing_stop": base_stop,
+        "stop_distance_pct": 0.08  # 8% trailing distance
+    }
+    
+    # Check if trailing stop should be activated
+    if gain_pct > trailing_trigger:
+        trailing_data["trailing_active"] = True
+        
+        # Calculate 8% trailing stop from current price
+        trailing_stop_price = current_price * (1 - trailing_data["stop_distance_pct"])
+        
+        # Use the higher of base stop or trailing stop
+        trailing_data["trailing_stop"] = max(base_stop, trailing_stop_price)
+        
+        trailing_data["activation_reason"] = f"Gain of {gain_pct:.2%} exceeded {trailing_trigger:.2%} trigger"
+    else:
+        trailing_data["activation_reason"] = f"Gain of {gain_pct:.2%} below {trailing_trigger:.2%} trigger"
+    
+    return trailing_data
+
+def update_all_trailing_stops():
+    """Update trailing stops for all positions"""
+    config = load_config()
+    client = get_alpaca_client()
+    
+    print("=== Updating Trailing Stops ===")
+    
+    # Get current positions
+    try:
+        alpaca_positions = client.get_all_positions()
+        current_positions = {pos.symbol: pos for pos in alpaca_positions if pos.symbol in config["stocks"]}
+    except Exception as e:
+        print(f"Error getting positions: {e}")
+        return {"status": "error", "error": str(e)}
+    
+    trailing_stops = {}
+    
+    for symbol in config["stocks"].keys():
+        if symbol not in current_positions:
+            print(f"Position {symbol} not found - skipping")
+            continue
+        
+        # Get current price
+        current_price = get_current_price(symbol)
+        if not current_price:
+            print(f"Could not get price for {symbol} - skipping")
+            continue
+        
+        # Calculate trailing stop
+        trailing_data = calculate_trailing_stop(symbol, current_price, config)
+        trailing_stops[symbol] = trailing_data
+        
+        # Display results
+        if trailing_data["trailing_active"]:
+            print(f"{symbol}: ${current_price:.2f} | Trailing Stop: ${trailing_data['trailing_stop']:.2f} | Gain: {trailing_data['gain_pct']:.2%} ✅")
+        else:
+            print(f"{symbol}: ${current_price:.2f} | Base Stop: ${trailing_data['base_stop']:.2f} | Gain: {trailing_data['gain_pct']:.2%}")
+    
+    return {
+        "status": "update_complete",
+        "trailing_stops": trailing_stops,
+        "positions_updated": len(trailing_stops),
+        "timestamp": datetime.now().isoformat()
+    }
+
+def check_trailing_stop_triggers():
+    """Check if any trailing stops should trigger"""
+    update_result = update_all_trailing_stops()
+    
+    if update_result["status"] != "update_complete":
+        return update_result
+    
+    print("\n=== Checking Trailing Stop Triggers ===")
+    
+    triggers = []
+    
+    for symbol, trailing_data in update_result["trailing_stops"].items():
+        current_price = trailing_data["current_price"]
+        trailing_stop = trailing_data["trailing_stop"]
+        
+        # Check if price has fallen below trailing stop
+        if current_price <= trailing_stop:
+            trigger_info = {
+                "symbol": symbol,
+                "trigger_type": "trailing_stop" if trailing_data["trailing_active"] else "base_stop",
+                "current_price": current_price,
+                "stop_level": trailing_stop,
+                "trigger_reason": f"Price ${current_price:.2f} <= Stop ${trailing_stop:.2f}",
+                "gain_preserved": trailing_data["gain_pct"],
+                "timestamp": datetime.now().isoformat()
             }
             
-            # Break down by stop type
-            for stop_type in df['stop_type'].unique():
-                type_df = df[df['stop_type'] == stop_type]
-                stats[f'{stop_type}_stops'] = {
-                    'count': len(type_df),
-                    'avg_pnl_pct': type_df['pnl_pct'].mean(),
-                    'success_rate': len(type_df[type_df['pnl'] > 0]) / len(type_df) if len(type_df) > 0 else 0
-                }
+            triggers.append(trigger_info)
+            print(f"TRIGGER: {symbol} - {trigger_info['trigger_reason']}")
+    
+    return {
+        "status": "check_complete",
+        "trailing_stops": update_result["trailing_stops"],
+        "triggers": triggers,
+        "triggers_count": len(triggers),
+        "timestamp": datetime.now().isoformat()
+    }
+
+def optimize_trailing_stops():
+    """Optimize trailing stop levels based on volatility and momentum"""
+    config = load_config()
+    
+    print("=== Optimizing Trailing Stops ===")
+    
+    optimizations = {}
+    
+    for symbol in config["stocks"].keys():
+        # Get historical volatility data
+        try:
+            import yfinance as yf
+            ticker = yf.Ticker(symbol)
+            hist = ticker.history(period="20d")  # 20-day history
             
-            return stats
+            if len(hist) >= 10:
+                # Calculate volatility metrics
+                returns = hist['Close'].pct_change().dropna()
+                volatility = returns.std() * (252 ** 0.5)  # Annualized volatility
+                
+                # Calculate optimal trailing distance based on volatility
+                base_distance = 0.08  # 8% base trailing distance
+                
+                if volatility > 0.4:  # High volatility
+                    optimal_distance = min(0.12, base_distance * 1.5)
+                    volatility_level = "high"
+                elif volatility < 0.2:  # Low volatility
+                    optimal_distance = max(0.05, base_distance * 0.75)
+                    volatility_level = "low"
+                else:  # Normal volatility
+                    optimal_distance = base_distance
+                    volatility_level = "normal"
+                
+                optimizations[symbol] = {
+                    "current_distance": base_distance,
+                    "optimal_distance": optimal_distance,
+                    "volatility": volatility,
+                    "volatility_level": volatility_level,
+                    "recommendation": "adjust" if abs(optimal_distance - base_distance) > 0.01 else "maintain"
+                }
+                
+                print(f"{symbol}: Volatility {volatility:.1%} ({volatility_level}) | Optimal distance: {optimal_distance:.1%}")
             
         except Exception as e:
-            logger.error(f"Error calculating stop performance stats: {e}")
-            return {}
+            print(f"Could not optimize {symbol}: {e}")
+            optimizations[symbol] = {"error": str(e)}
     
-    def generate_stop_report(self, positions: Dict) -> Dict:
-        """Generate comprehensive stop loss report"""
-        risk_metrics = self.calculate_risk_metrics(positions)
-        alerts = self.generate_stop_alerts(positions)
-        performance_stats = self.get_stop_performance_stats()
-        
-        # Position-level stop analysis
-        position_analysis = {}
-        for symbol, position in positions.items():
-            current_price = position.get('current_price', 0)
-            stop_level = position.get('stop_level', 0)
-            entry_price = position.get('entry_price', 0)
-            
-            if current_price > 0 and stop_level > 0 and entry_price > 0:
-                position_analysis[symbol] = {
-                    'current_price': current_price,
-                    'stop_level': stop_level,
-                    'stop_type': position.get('stop_type', 'unknown'),
-                    'distance_to_stop_pct': (current_price - stop_level) / current_price,
-                    'distance_to_stop_dollars': current_price - stop_level,
-                    'gain_from_entry_pct': (current_price - entry_price) / entry_price,
-                    'stop_protection_pct': (stop_level - entry_price) / entry_price,
-                    'trailing_activated': position.get('stop_type') == 'trailing',
-                    'days_held': (datetime.now().date() - 
-                                datetime.fromisoformat(position['entry_date']).date()).days
-                }
-        
-        return {
-            'timestamp': datetime.now().isoformat(),
-            'portfolio_risk_metrics': risk_metrics,
-            'position_analysis': position_analysis,
-            'active_alerts': alerts,
-            'historical_performance': performance_stats,
-            'stop_configuration': self.stop_config
+    return {
+        "status": "optimization_complete",
+        "optimizations": optimizations,
+        "timestamp": datetime.now().isoformat()
+    }
+
+def generate_trailing_stops_report():
+    """Generate comprehensive trailing stops report"""
+    print("=== Generating Trailing Stops Report ===")
+    
+    # Check current trailing stops
+    trailing_check = check_trailing_stop_triggers()
+    
+    # Optimize trailing stops
+    optimization = optimize_trailing_stops()
+    
+    # Combine results
+    report = {
+        "report_timestamp": datetime.now().isoformat(),
+        "trailing_stops_check": trailing_check,
+        "optimization": optimization,
+        "summary": {
+            "positions_monitored": len(trailing_check.get("trailing_stops", {})),
+            "trailing_stops_active": len([ts for ts in trailing_check.get("trailing_stops", {}).values() if ts.get("trailing_active")]),
+            "triggers_detected": len(trailing_check.get("triggers", [])),
+            "optimizations_suggested": len([opt for opt in optimization.get("optimizations", {}).values() if opt.get("recommendation") == "adjust"])
         }
+    }
+    
+    return report
+
+def save_trailing_stops_state(trailing_stops_data):
+    """Save current trailing stops state to file"""
+    state = {
+        "timestamp": datetime.now().isoformat(),
+        "trailing_stops": trailing_stops_data,
+        "last_update": datetime.now().isoformat()
+    }
+    
+    with open('data/trailing_stops_state.json', 'w') as f:
+        json.dump(state, f, indent=2)
+    
+    print("Trailing stops state saved to data/trailing_stops_state.json")
+
+def load_trailing_stops_state():
+    """Load previous trailing stops state"""
+    try:
+        with open('data/trailing_stops_state.json', 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return None
+    except Exception as e:
+        print(f"Error loading trailing stops state: {e}")
+        return None
+
+if __name__ == "__main__":
+    # Generate and display report
+    report = generate_trailing_stops_report()
+    
+    print("\n=== TRAILING STOPS REPORT ===")
+    print(f"Report Time: {report['report_timestamp']}")
+    print(f"Positions Monitored: {report['summary']['positions_monitored']}")
+    print(f"Trailing Stops Active: {report['summary']['trailing_stops_active']}")
+    print(f"Triggers Detected: {report['summary']['triggers_detected']}")
+    print(f"Optimizations Suggested: {report['summary']['optimizations_suggested']}")
+    
+    if report["summary"]["triggers_detected"] > 0:
+        print("\n🔥 TRAILING STOP TRIGGERS:")
+        for trigger in report["trailing_stops_check"]["triggers"]:
+            print(f"  {trigger['symbol']}: {trigger['trigger_reason']} (Gain preserved: {trigger['gain_preserved']:.2%})")
+    
+    if report["summary"]["optimizations_suggested"] > 0:
+        print("\n💡 OPTIMIZATION SUGGESTIONS:")
+        for symbol, opt in report["optimization"]["optimizations"].items():
+            if opt.get("recommendation") == "adjust":
+                print(f"  {symbol}: Adjust trailing distance from {opt['current_distance']:.1%} to {opt['optimal_distance']:.1%} (Volatility: {opt['volatility_level']})")
+    
+    if report["summary"]["triggers_detected"] == 0 and report["summary"]["optimizations_suggested"] == 0:
+        print("\n✅ All trailing stops optimal - no action required")
+    
+    # Save current state
+    if "trailing_stops" in report["trailing_stops_check"]:
+        save_trailing_stops_state(report["trailing_stops_check"]["trailing_stops"])
+    
+    # Save report
+    with open('data/trailing_stops_report.json', 'w') as f:
+        json.dump(report, f, indent=2)
+    print(f"\nReport saved to data/trailing_stops_report.json")

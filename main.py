@@ -1,489 +1,347 @@
 #!/usr/bin/env python3
 """
-Mid-Cap Portfolio Tracker with Advanced Trailing Stop-Loss
-Professional portfolio management system with Alpaca trading integration
+Mid-Cap Portfolio Management System
+Updated for $100K baseline with new stock selections
 """
 
-import json
 import os
-import requests
+import json
 import pandas as pd
+import requests
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
-import logging
+from alpaca.trading.client import TradingClient
+from alpaca.trading.requests import MarketOrderRequest, StopOrderRequest
+from alpaca.trading.enums import OrderSide, TimeInForce
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('logs/portfolio.log'),
-        logging.StreamHandler()
-    ]
+from config import (
+    BASELINE_INVESTMENT, PORTFOLIO_STOCKS, ALPACA_API_KEY, ALPACA_SECRET_KEY,
+    ALPACA_BASE_URL, ALPHA_VANTAGE_API_KEY, ALPHA_VANTAGE_BASE_URL,
+    PORTFOLIO_HISTORY_FILE, LATEST_JSON_FILE, TRAILING_STOP_TRIGGER,
+    PARTIAL_PROFIT_TARGET, MAX_PORTFOLIO_RISK, EXPERIMENT_START_DATE
 )
-logger = logging.getLogger(__name__)
 
-# Alpaca integration
-try:
-    import alpaca_trade_api as tradeapi
-    ALPACA_AVAILABLE = True
-except ImportError:
-    ALPACA_AVAILABLE = False
-    logger.warning("alpaca-trade-api not installed. Using Alpha Vantage fallback.")
-
-class AlpacaClient:
+class PortfolioManager:
     def __init__(self):
-        """Initialize Alpaca API client"""
-        self.api_key_id = os.environ.get('ALPACA_API_KEY_ID')
-        self.secret_key = os.environ.get('ALPACA_SECRET_KEY')
-        self.base_url = os.environ.get('ALPACA_BASE_URL', 'https://paper-api.alpaca.markets')
+        self.alpaca_client = TradingClient(ALPACA_API_KEY, ALPACA_SECRET_KEY, paper=True)
+        self.portfolio_data = {}
+        self.positions = {}
         
-        if not self.api_key_id or not self.secret_key:
-            logger.error("Alpaca API credentials not found in environment variables")
-            return
-        
+    def get_current_price(self, symbol):
+        """Get current stock price from Alpha Vantage with Alpaca fallback"""
         try:
-            self.api = tradeapi.REST(
-                key_id=self.api_key_id,
-                secret_key=self.secret_key,
-                base_url=self.base_url,
-                api_version='v2'
-            )
-            logger.info(f"Alpaca client initialized for: {self.base_url}")
-        except Exception as e:
-            logger.error(f"Failed to initialize Alpaca client: {e}")
-            self.api = None
-
-    def test_connection(self) -> bool:
-        """Test API connection"""
-        try:
-            if not self.api:
-                return False
-            account = self.api.get_account()
-            logger.info(f"Connected to Alpaca - Account Status: {account.status}")
-            logger.info(f"Buying Power: ${float(account.buying_power):,.2f}")
-            return True
-        except Exception as e:
-            logger.error(f"Alpaca connection failed: {e}")
-            return False
-
-    def get_current_price(self, symbol: str) -> Optional[float]:
-        """Get current stock price"""
-        try:
-            if not self.api:
-                return None
-            
-            # Get latest quote
-            quote = self.api.get_latest_quote(symbol)
-            
-            # Return mid price (average of bid and ask)
-            if quote and hasattr(quote, 'bid_price') and hasattr(quote, 'ask_price'):
-                if quote.bid_price and quote.ask_price:
-                    mid_price = (float(quote.bid_price) + float(quote.ask_price)) / 2
-                    return mid_price
-            
-            # Fallback to latest trade if quote not available
-            trade = self.api.get_latest_trade(symbol)
-            if trade and hasattr(trade, 'price') and trade.price:
-                return float(trade.price)
-            
-            return None
-            
-        except Exception as e:
-            logger.error(f"Error getting price for {symbol}: {e}")
-            return None
-
-    def sync_portfolio_positions(self) -> Dict:
-        """Get current positions from Alpaca"""
-        try:
-            if not self.api:
-                return {}
-            
-            positions = self.api.list_positions()
-            position_data = {}
-            
-            for pos in positions:
-                position_data[pos.symbol] = {
-                    'symbol': pos.symbol,
-                    'shares': float(pos.qty),
-                    'current_price': float(pos.market_value) / float(pos.qty) if float(pos.qty) > 0 else 0,
-                    'market_value': float(pos.market_value),
-                    'unrealized_pnl': float(pos.unrealized_pl),
-                    'unrealized_pnl_pct': float(pos.unrealized_plpc),
-                    'cost_basis': float(pos.cost_basis) if hasattr(pos, 'cost_basis') and pos.cost_basis else 0
-                }
-            
-            return position_data
-            
-        except Exception as e:
-            logger.error(f"Error syncing portfolio positions: {e}")
-            return {}
-
-class MidCapPortfolioTracker:
-    def __init__(self, config_file='config.json'):
-        """Initialize the portfolio tracker"""
-        # Load configuration
-        try:
-            with open(config_file, 'r') as f:
-                self.config = json.load(f)
-        except FileNotFoundError:
-            logger.error(f"Configuration file {config_file} not found")
-            self.config = {}
-        
-        # File paths
-        self.portfolio_state_file = 'state/portfolio_state.json'
-        self.portfolio_history_file = 'data/portfolio_history.csv'
-        
-        # API setup
-        self.api_key = os.environ.get('ALPHAVANTAGE_API_KEY')
-        
-        # Data source preference
-        self.data_source = 'alpaca' if ALPACA_AVAILABLE else 'alpha_vantage'
-        
-        # Initialize Alpaca client if available
-        self.alpaca_client = None
-        self.use_alpaca = False
-        
-        if ALPACA_AVAILABLE:
-            try:
-                self.alpaca_client = AlpacaClient()
-                if self.alpaca_client.test_connection():
-                    self.use_alpaca = True
-                    logger.info("Using Alpaca Markets for data and trading")
-                else:
-                    logger.warning("Alpaca connection failed, falling back to Alpha Vantage")
-                    self.data_source = 'alpha_vantage'
-            except Exception as e:
-                logger.error(f"Error initializing Alpaca: {e}")
-                self.data_source = 'alpha_vantage'
-        
-        if not self.use_alpaca:
-            if not self.api_key:
-                logger.error("No ALPHAVANTAGE_API_KEY found in environment variables")
-            else:
-                logger.info("Using Alpha Vantage for data")
-        
-        # Initialize portfolio state
-        self.portfolio_state = self.load_portfolio_state()
-        
-        # Ensure directories exist
-        os.makedirs('state', exist_ok=True)
-        os.makedirs('data', exist_ok=True)
-        os.makedirs('docs', exist_ok=True)
-        os.makedirs('logs', exist_ok=True)
-
-    def load_portfolio_state(self) -> Dict:
-        """Load current portfolio state"""
-        try:
-            with open(self.portfolio_state_file, 'r') as f:
-                state = json.load(f)
-            logger.info("Portfolio state loaded successfully")
-            return state
-        except FileNotFoundError:
-            logger.info("No existing portfolio state found, creating new state")
-            return {
-                "positions": {},
-                "cash": 24.52,
-                "portfolio_value": 1000.0,
-                "last_update": datetime.now().isoformat(),
-                "experiment_start": "2025-09-08T00:00:00"
-            }
-
-    def sync_with_alpaca_positions(self):
-        """Sync portfolio with current Alpaca positions, respecting stop loss executions"""
-        try:
-            if not self.alpaca_client or not self.use_alpaca:
-                logger.info("No Alpaca connection available")
-                return
-
-            logger.info("Syncing with Alpaca positions...")
-            alpaca_positions = self.alpaca_client.sync_portfolio_positions()
-            
-            if not alpaca_positions:
-                logger.info("No positions found in Alpaca account")
-                return
-            
-            # Get current experiment symbols that should exist
-            experiment_symbols = set(['CRNX', 'STRL', 'OTEX', 'ZION'])
-            alpaca_symbols = set(alpaca_positions.keys())
-            
-            # Find positions that were sold (exist in experiment but not in Alpaca)
-            sold_positions = experiment_symbols - alpaca_symbols
-            
-            if sold_positions:
-                logger.info(f"Positions sold via stop loss: {sold_positions}")
-                
-                # Remove sold positions from portfolio state
-                for symbol in sold_positions:
-                    if symbol in self.portfolio_state['positions']:
-                        logger.info(f"Removing {symbol} from portfolio (stop loss executed)")
-                        del self.portfolio_state['positions'][symbol]
-            
-            # Update existing positions with current Alpaca data
-            for symbol, alpaca_pos in alpaca_positions.items():
-                if symbol in experiment_symbols:
-                    if symbol not in self.portfolio_state['positions']:
-                        # Add new position (shouldn't happen normally)
-                        self.portfolio_state['positions'][symbol] = {
-                            'symbol': symbol,
-                            'shares': alpaca_pos['shares'],
-                            'entry_price': alpaca_pos['current_price'],
-                            'catalyst': 'N/A'
-                        }
-                    
-                    # Update with current market data
-                    self.portfolio_state['positions'][symbol].update({
-                        'current_price': alpaca_pos['current_price'],
-                        'market_value': alpaca_pos['market_value'],
-                        'unrealized_pnl': alpaca_pos['unrealized_pnl'],
-                        'unrealized_pnl_pct': alpaca_pos['unrealized_pnl_pct'],
-                        'last_update': datetime.now().isoformat()
-                    })
-                    logger.info(f"Updated {symbol} with current Alpaca data")
-            
-            # Update portfolio totals
-            self.update_portfolio_totals()
-            
-        except Exception as e:
-            logger.error(f"Error during Alpaca sync: {e}")
-            
-    def update_portfolio_totals(self):
-        """Recalculate portfolio totals after position changes"""
-        try:
-            total_value = 0
-            for position in self.portfolio_state['positions'].values():
-                total_value += position.get('market_value', 0)
-            
-            total_value += self.portfolio_state.get('cash', 0)
-            
-            self.portfolio_state['portfolio_value'] = total_value
-            self.portfolio_state['positions_count'] = len(self.portfolio_state['positions'])
-            self.portfolio_state['last_update'] = datetime.now().isoformat()
-            
-            logger.info(f"Portfolio totals updated - Value: ${total_value:.2f}, Positions: {len(self.portfolio_state['positions'])}")
-            
-        except Exception as e:
-            logger.error(f"Error updating portfolio totals: {e}")
-
-    def get_alpha_vantage_price(self, symbol: str) -> Optional[float]:
-        """Fallback price fetching from Alpha Vantage"""
-        if not self.api_key:
-            return None
-            
-        try:
-            url = f"https://www.alphavantage.co/query"
-            params = {
-                'function': 'GLOBAL_QUOTE',
-                'symbol': symbol,
-                'apikey': self.api_key
-            }
-            
-            response = requests.get(url, params=params, timeout=10)
+            # Try Alpha Vantage first
+            url = f"{ALPHA_VANTAGE_BASE_URL}?function=GLOBAL_QUOTE&symbol={symbol}&apikey={ALPHA_VANTAGE_API_KEY}"
+            response = requests.get(url, timeout=10)
             data = response.json()
             
-            if 'Global Quote' in data:
-                price_str = data['Global Quote']['05. price']
-                return float(price_str)
-            
-            return None
-            
+            if "Global Quote" in data:
+                return float(data["Global Quote"]["05. price"])
         except Exception as e:
-            logger.error(f"Error getting Alpha Vantage price for {symbol}: {e}")
-            return None
-
-    def update_stock_prices(self):
-        """Update prices only for positions that still exist in portfolio"""
+            print(f"Alpha Vantage failed for {symbol}: {e}")
+        
         try:
-            if not self.portfolio_state.get('positions'):
-                logger.info("No positions to update")
-                return
+            # Fallback to Alpaca
+            positions = self.alpaca_client.get_all_positions()
+            for pos in positions:
+                if pos.symbol == symbol:
+                    return float(pos.market_value) / float(pos.qty)
+        except Exception as e:
+            print(f"Alpaca fallback failed for {symbol}: {e}")
+        
+        return None
+
+    def get_benchmark_prices(self):
+        """Get benchmark ETF prices"""
+        benchmarks = ["SPY", "MDY", "IWM", "QQQ"]
+        benchmark_data = {}
+        
+        for symbol in benchmarks:
+            price = self.get_current_price(symbol)
+            if price:
+                benchmark_data[f"{symbol}_price"] = price
+        
+        return benchmark_data
+
+    def calculate_position_metrics(self, symbol, current_price):
+        """Calculate position metrics for a stock"""
+        stock_config = PORTFOLIO_STOCKS[symbol]
+        
+        # Get position from Alpaca
+        alpaca_positions = self.alpaca_client.get_all_positions()
+        alpaca_pos = next((pos for pos in alpaca_positions if pos.symbol == symbol), None)
+        
+        if alpaca_pos:
+            shares = float(alpaca_pos.qty)
+            entry_price = float(alpaca_pos.avg_entry_price)
+            cost_basis = float(alpaca_pos.cost_basis)
+            market_value = shares * current_price
+        else:
+            # Calculate based on allocation if not yet purchased
+            shares = stock_config["allocation"] / stock_config["entry_target"]
+            entry_price = stock_config["entry_target"]
+            cost_basis = stock_config["allocation"]
+            market_value = shares * current_price
+        
+        unrealized_pnl = market_value - cost_basis
+        unrealized_pnl_pct = unrealized_pnl / cost_basis if cost_basis > 0 else 0
+        
+        # Calculate stop loss levels
+        current_stop = max(stock_config["stop_loss"], current_price * 0.92)  # 8% trailing stop
+        
+        # Check if trailing stop should be activated
+        gain_pct = (current_price - entry_price) / entry_price
+        if gain_pct > TRAILING_STOP_TRIGGER:
+            trailing_stop = current_price * 0.92  # 8% trailing
+            current_stop = max(current_stop, trailing_stop)
+        
+        return {
+            "symbol": symbol,
+            "shares": shares,
+            "entry_price": entry_price,
+            "current_price": current_price,
+            "market_value": market_value,
+            "cost_basis": cost_basis,
+            "unrealized_pnl": unrealized_pnl,
+            "unrealized_pnl_pct": unrealized_pnl_pct,
+            "stop_loss": current_stop,
+            "target_1": stock_config["target_1"],
+            "target_2": stock_config["target_2"],
+            "catalyst": stock_config["catalyst"],
+            "risk_level": stock_config["risk_level"],
+            "last_update": datetime.now().isoformat()
+        }
+
+    def check_stop_losses(self):
+        """Check and execute stop losses if triggered"""
+        stop_loss_triggered = []
+        
+        alpaca_positions = self.alpaca_client.get_all_positions()
+        
+        for symbol in PORTFOLIO_STOCKS.keys():
+            current_price = self.get_current_price(symbol)
+            if not current_price:
+                continue
                 
-            for symbol in list(self.portfolio_state['positions'].keys()):
+            alpaca_pos = next((pos for pos in alpaca_positions if pos.symbol == symbol), None)
+            if not alpaca_pos:
+                continue
+                
+            position_data = self.calculate_position_metrics(symbol, current_price)
+            
+            # Check if stop loss should trigger
+            if current_price <= position_data["stop_loss"]:
+                print(f"STOP LOSS TRIGGERED for {symbol}: {current_price} <= {position_data['stop_loss']}")
+                
                 try:
-                    # Skip if position was removed by stop loss sync
-                    if symbol not in self.portfolio_state['positions']:
-                        continue
-                        
-                    if self.use_alpaca and self.alpaca_client:
-                        price = self.alpaca_client.get_current_price(symbol)
-                    else:
-                        price = self.get_alpha_vantage_price(symbol)
+                    # Execute stop loss order
+                    order_request = MarketOrderRequest(
+                        symbol=symbol,
+                        qty=float(alpaca_pos.qty),
+                        side=OrderSide.SELL,
+                        time_in_force=TimeInForce.DAY
+                    )
                     
-                    if price:
-                        position = self.portfolio_state['positions'][symbol]
-                        old_price = position.get('current_price', 0)
-                        position['current_price'] = price
-                        position['market_value'] = position['shares'] * price
-                        
-                        # Calculate P&L
-                        cost_basis = position.get('cost_basis', position['shares'] * position.get('entry_price', price))
-                        position['unrealized_pnl'] = position['market_value'] - cost_basis
-                        position['unrealized_pnl_pct'] = position['unrealized_pnl'] / cost_basis if cost_basis > 0 else 0
-                        position['last_update'] = datetime.now().isoformat()
-                        
-                        logger.info(f"Updated {symbol}: ${old_price:.2f} -> ${price:.2f}")
-                    else:
-                        logger.warning(f"Could not get price for {symbol}")
-                        
+                    order = self.alpaca_client.submit_order(order_request)
+                    print(f"Stop loss order submitted for {symbol}: {order.id}")
+                    
+                    stop_loss_triggered.append({
+                        "symbol": symbol,
+                        "trigger_price": current_price,
+                        "stop_level": position_data["stop_loss"],
+                        "shares": float(alpaca_pos.qty),
+                        "proceeds": float(alpaca_pos.qty) * current_price,
+                        "order_id": order.id
+                    })
+                    
                 except Exception as e:
-                    logger.error(f"Error updating {symbol}: {e}")
-                    continue
+                    print(f"Failed to execute stop loss for {symbol}: {e}")
+        
+        return stop_loss_triggered
+
+    def check_profit_targets(self):
+        """Check if any positions hit profit targets"""
+        profit_targets_hit = []
+        
+        alpaca_positions = self.alpaca_client.get_all_positions()
+        
+        for symbol in PORTFOLIO_STOCKS.keys():
+            current_price = self.get_current_price(symbol)
+            if not current_price:
+                continue
+                
+            alpaca_pos = next((pos for pos in alpaca_positions if pos.symbol == symbol), None)
+            if not alpaca_pos:
+                continue
+                
+            position_data = self.calculate_position_metrics(symbol, current_price)
+            
+            # Check target 1
+            if current_price >= position_data["target_1"]:
+                # Sell 50% at target 1
+                sell_qty = float(alpaca_pos.qty) * PARTIAL_PROFIT_TARGET
+                
+                try:
+                    order_request = MarketOrderRequest(
+                        symbol=symbol,
+                        qty=sell_qty,
+                        side=OrderSide.SELL,
+                        time_in_force=TimeInForce.DAY
+                    )
                     
-        except Exception as e:
-            logger.error(f"Error in update_stock_prices: {e}")
+                    order = self.alpaca_client.submit_order(order_request)
+                    print(f"Profit target 1 hit for {symbol}: Sold {sell_qty} shares at {current_price}")
+                    
+                    profit_targets_hit.append({
+                        "symbol": symbol,
+                        "target": "Target 1",
+                        "price": current_price,
+                        "target_price": position_data["target_1"],
+                        "shares_sold": sell_qty,
+                        "proceeds": sell_qty * current_price,
+                        "order_id": order.id
+                    })
+                    
+                except Exception as e:
+                    print(f"Failed to execute profit target sale for {symbol}: {e}")
+        
+        return profit_targets_hit
 
-    def save_portfolio_state(self):
-        """Save current portfolio state to file"""
-        try:
-            with open(self.portfolio_state_file, 'w') as f:
-                json.dump(self.portfolio_state, f, indent=2, default=str)
-            logger.info("Portfolio state saved successfully")
-        except Exception as e:
-            logger.error(f"Error saving portfolio state: {e}")
+    def update_portfolio_data(self):
+        """Update portfolio data with current positions and metrics"""
+        print("Updating portfolio data...")
+        
+        # Get current account balance
+        account = self.alpaca_client.get_account()
+        cash = float(account.cash)
+        
+        # Calculate positions
+        positions = {}
+        total_positions_value = 0
+        
+        for symbol in PORTFOLIO_STOCKS.keys():
+            current_price = self.get_current_price(symbol)
+            if current_price:
+                position_data = self.calculate_position_metrics(symbol, current_price)
+                positions[symbol] = position_data
+                total_positions_value += position_data["market_value"]
+        
+        # Calculate portfolio totals
+        portfolio_value = total_positions_value + cash
+        total_return = portfolio_value - BASELINE_INVESTMENT
+        total_return_pct = total_return / BASELINE_INVESTMENT
+        
+        # Get benchmark prices
+        benchmark_data = self.get_benchmark_prices()
+        
+        # Update portfolio data
+        self.portfolio_data = {
+            "positions": positions,
+            "cash": cash,
+            "portfolio_value": portfolio_value,
+            "total_invested": BASELINE_INVESTMENT,
+            "total_return": total_return,
+            "total_return_pct": total_return_pct,
+            "positions_count": len([pos for pos in positions.values() if pos["shares"] > 0]),
+            "last_update": datetime.now().isoformat(),
+            "experiment_start": EXPERIMENT_START_DATE,
+            "max_portfolio_risk": MAX_PORTFOLIO_RISK,
+            **benchmark_data
+        }
+        
+        print(f"Portfolio Value: ${portfolio_value:,.2f}")
+        print(f"Total Return: ${total_return:,.2f} ({total_return_pct:.2%})")
+        print(f"Cash: ${cash:,.2f}")
+        print(f"Positions: {len(positions)}")
+        
+        return self.portfolio_data
 
-    def save_daily_snapshot(self):
-        """Save daily portfolio snapshot to CSV"""
-        try:
-            # Calculate current totals
-            positions_value = sum([pos.get('market_value', 0) for pos in self.portfolio_state['positions'].values()])
-            cash = self.portfolio_state.get('cash', 0)
-            total_value = positions_value + cash
+    def save_to_json(self):
+        """Save current portfolio data to JSON file"""
+        os.makedirs(os.path.dirname(LATEST_JSON_FILE), exist_ok=True)
+        
+        with open(LATEST_JSON_FILE, 'w') as f:
+            json.dump(self.portfolio_data, f, indent=2)
+        
+        print(f"Portfolio data saved to {LATEST_JSON_FILE}")
+
+    def save_to_csv(self):
+        """Save portfolio data to CSV history"""
+        os.makedirs(os.path.dirname(PORTFOLIO_HISTORY_FILE), exist_ok=True)
+        
+        # Create CSV record
+        csv_record = {
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "portfolio_value": self.portfolio_data["portfolio_value"],
+            "cash": self.portfolio_data["cash"],
+            "positions_value": sum([pos["market_value"] for pos in self.portfolio_data["positions"].values()]),
+            "total_invested": self.portfolio_data["total_invested"],
+            "total_return": self.portfolio_data["total_return"],
+            "total_return_pct": self.portfolio_data["total_return_pct"],
+            "positions_count": self.portfolio_data["positions_count"],
+        }
+        
+        # Add benchmark prices
+        for key, value in self.portfolio_data.items():
+            if key.endswith("_price"):
+                csv_record[key] = value
+        
+        # Add individual stock prices and PnL
+        for symbol, position in self.portfolio_data["positions"].items():
+            csv_record[f"{symbol}_price"] = position["current_price"]
+            csv_record[f"{symbol}_pnl"] = position["unrealized_pnl"]
+            csv_record[f"{symbol}_pnl_pct"] = position["unrealized_pnl_pct"]
+        
+        # Read existing CSV or create new
+        if os.path.exists(PORTFOLIO_HISTORY_FILE):
+            df = pd.read_csv(PORTFOLIO_HISTORY_FILE)
             
-            # Create record
-            record = {
-                'date': datetime.now().strftime('%Y-%m-%d'),
-                'portfolio_value': total_value,
-                'cash': cash,
-                'positions_value': positions_value,
-                'total_invested': 1000.0,
-                'total_return': total_value - 1000.0,
-                'total_return_pct': (total_value - 1000.0) / 1000.0,
-                'positions_count': len(self.portfolio_state['positions'])
-            }
-            
-            # Add individual position data
-            for symbol in ['CRNX', 'STRL', 'OTEX', 'ZION']:
-                if symbol in self.portfolio_state['positions']:
-                    pos = self.portfolio_state['positions'][symbol]
-                    record[f'{symbol}_price'] = pos.get('current_price', 0)
-                    record[f'{symbol}_pnl'] = pos.get('unrealized_pnl', 0)
-                    record[f'{symbol}_pnl_pct'] = pos.get('unrealized_pnl_pct', 0)
-                else:
-                    record[f'{symbol}_price'] = None
-                    record[f'{symbol}_pnl'] = None
-                    record[f'{symbol}_pnl_pct'] = None
-            
-            # Save to CSV
-            df_new = pd.DataFrame([record])
-            
-            if os.path.exists(self.portfolio_history_file):
-                df_existing = pd.read_csv(self.portfolio_history_file)
-                # Remove today's entry if it exists
-                today = datetime.now().strftime('%Y-%m-%d')
-                df_existing = df_existing[df_existing['date'] != today]
-                df_combined = pd.concat([df_existing, df_new], ignore_index=True)
+            # Update today's record or append new
+            today = datetime.now().strftime("%Y-%m-%d")
+            if today in df['date'].values:
+                df.loc[df['date'] == today] = pd.Series(csv_record)
             else:
-                df_combined = df_new
-            
-            df_combined.to_csv(self.portfolio_history_file, index=False)
-            logger.info("Daily snapshot saved to CSV")
-            
-            return record
-            
-        except Exception as e:
-            logger.error(f"Error saving daily snapshot: {e}")
-            return {}
-
-    def generate_daily_summary(self) -> Dict:
-        """Generate summary for dashboard"""
-        try:
-            positions_value = sum([pos.get('market_value', 0) for pos in self.portfolio_state['positions'].values()])
-            cash = self.portfolio_state.get('cash', 0)
-            total_value = positions_value + cash
-            total_return = total_value - 1000.0
-            total_return_pct = total_return / 1000.0
-            
-            summary = {
-                'date': datetime.now().strftime('%Y-%m-%d'),
-                'data_source': self.data_source,
-                'portfolio_value': total_value,
-                'cash': cash,
-                'positions_value': positions_value,
-                'total_invested': 1000.0,
-                'total_return': total_return,
-                'total_return_pct': total_return_pct,
-                'positions_count': len(self.portfolio_state['positions']),
-                'positions': self.portfolio_state['positions'],
-                'last_update': datetime.now().isoformat(),
-                'experiment_start': "2025-09-08T00:00:00"
-            }
-            
-            return summary
-            
-        except Exception as e:
-            logger.error(f"Error generating daily summary: {e}")
-            return {}
+                df = pd.concat([df, pd.DataFrame([csv_record])], ignore_index=True)
+        else:
+            # Create header
+            df = pd.DataFrame([csv_record])
+        
+        df.to_csv(PORTFOLIO_HISTORY_FILE, index=False)
+        print(f"Portfolio history saved to {PORTFOLIO_HISTORY_FILE}")
 
     def run_daily_update(self):
         """Run complete daily portfolio update"""
+        print("=== Daily Portfolio Update Starting ===")
+        print(f"Baseline Investment: ${BASELINE_INVESTMENT:,.2f}")
+        print(f"Portfolio Stocks: {list(PORTFOLIO_STOCKS.keys())}")
+        
         try:
-            logger.info("Starting daily portfolio update")
+            # Check stop losses first
+            stop_losses = self.check_stop_losses()
+            if stop_losses:
+                print(f"Stop losses triggered: {len(stop_losses)}")
+                for sl in stop_losses:
+                    print(f"  {sl['symbol']}: {sl['shares']} shares at ${sl['trigger_price']:.2f}")
             
-            # 1. Sync with Alpaca positions first (handles stop losses)
-            if self.use_alpaca:
-                self.sync_with_alpaca_positions()
+            # Check profit targets
+            profit_targets = self.check_profit_targets()
+            if profit_targets:
+                print(f"Profit targets hit: {len(profit_targets)}")
+                for pt in profit_targets:
+                    print(f"  {pt['symbol']}: {pt['shares_sold']} shares at ${pt['price']:.2f}")
             
-            # 2. Update stock prices for remaining positions
-            self.update_stock_prices()
+            # Update portfolio data
+            self.update_portfolio_data()
             
-            # 3. Update portfolio totals
-            self.update_portfolio_totals()
+            # Save to files
+            self.save_to_json()
+            self.save_to_csv()
             
-            # 4. Save portfolio state
-            self.save_portfolio_state()
-            
-            # 5. Save daily snapshot
-            daily_record = self.save_daily_snapshot()
-            
-            # 6. Generate summary for dashboard
-            summary = self.generate_daily_summary()
-            
-            # 7. Save summary to docs for dashboard
-            with open('docs/latest.json', 'w') as f:
-                json.dump(summary, f, indent=2, default=str)
-            
-            portfolio_value = summary.get('portfolio_value', 0)
-            logger.info(f"Daily update complete. Portfolio value: ${portfolio_value:.2f}")
-            
-            return summary
+            print("=== Daily Portfolio Update Completed ===")
             
         except Exception as e:
-            logger.error(f"Error during daily update: {e}")
+            print(f"Error during portfolio update: {e}")
             raise
 
-def main():
-    """Main execution function"""
-    try:
-        tracker = MidCapPortfolioTracker()
-        summary = tracker.run_daily_update()
-        
-        print(f"\n=== Mid-Cap Portfolio Update ===")
-        print(f"Data Source: {summary.get('data_source', 'unknown')}")
-        print(f"Date: {summary.get('date', 'unknown')}")
-        print(f"Portfolio Value: ${summary.get('portfolio_value', 0):.2f}")
-        print(f"Total Return: ${summary.get('total_return', 0):.2f} ({summary.get('total_return_pct', 0):.2%})")
-        print(f"Cash: ${summary.get('cash', 0):.2f}")
-        print(f"Positions: {summary.get('positions_count', 0)}")
-        
-        if summary.get('positions'):
-            print(f"\n=== Current Positions ===")
-            for symbol, pos in summary['positions'].items():
-                print(f"{symbol}: {pos.get('shares', 0)} shares @ ${pos.get('current_price', 0):.2f}")
-                print(f"  P&L: ${pos.get('unrealized_pnl', 0):.2f} ({pos.get('unrealized_pnl_pct', 0):.2%})")
-                
-    except Exception as e:
-        logger.error(f"Error in main execution: {e}")
-        raise
-
 if __name__ == "__main__":
-    main()
+    manager = PortfolioManager()
+    manager.run_daily_update()

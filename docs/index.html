@@ -394,7 +394,7 @@
         async function loadData() {
             try {
                 // Load portfolio data
-                const portfolioResponse = await fetch('docs/latest.json');
+                const portfolioResponse = await fetch('./docs/latest.json');
                 if (!portfolioResponse.ok) {
                     throw new Error(`Failed to load portfolio data: ${portfolioResponse.status}`);
                 }
@@ -405,7 +405,7 @@
 
                 // Load historical data for chart
                 try {
-                    const csvResponse = await fetch('data/portfolio_history.csv');
+                    const csvResponse = await fetch('./data/portfolio_history.csv');
                     if (csvResponse.ok) {
                         const csvText = await csvResponse.text();
                         const csvData = csvText.split('\n')

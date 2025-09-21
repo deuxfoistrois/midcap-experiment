@@ -57,7 +57,7 @@ jobs:
             existing_portfolio = json.load(f)
 
         # Calculate positions value
-        positions_value = sum([pos.market_value for pos in positions if pos.symbol in ['CRNX', 'STRL', 'OTEX', 'ZION']])
+        positions_value = sum([float(pos.market_value) for pos in positions if pos.symbol in ['CRNX', 'STRL', 'OTEX', 'ZION']])
         print(f"Positions Value: ${positions_value:.2f}")
 
         # Handle CRNX stop loss

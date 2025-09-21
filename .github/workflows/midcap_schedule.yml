@@ -66,6 +66,6 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add docs/latest.json data/portfolio_history.csv data/*.json index.html
+        git add docs/latest.json data/portfolio_history.csv
         git commit -m "Daily portfolio update - $(date)" || exit 0
         git push

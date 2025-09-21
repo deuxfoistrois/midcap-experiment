@@ -1,62 +1,70 @@
 {
   "portfolio": {
-    "experiment_name": "Mid-Cap Catalyst Experiment",
-    "start_date": "2025-09-08",
-    "duration_days": 30,
-    "initial_capital": 1000.00,
-    "strategy": "catalyst-driven-midcap",
-    "description": "30-Day Mid-Cap Trading Experiment with Trailing Stop-Loss",
-    "target_returns": {
-      "bull_case": 0.35,
-      "base_case": 0.20,
-      "bear_case": 0.05
-    }
+    "baseline_investment": 100000.0,
+    "experiment_start_date": "2025-09-22",
+    "name": "Mid-Cap Catalyst Strategy",
+    "max_portfolio_risk": 0.075,
+    "trailing_stop_trigger": 0.10,
+    "partial_profit_target": 0.50
   },
-  "positions": {
-    "max_positions": 4,
-    "position_sizing": "equal_weight",
-    "min_position_size": 200,
-    "max_position_size": 300,
-    "market_cap_range": {
-      "min": 2000000000,
-      "max": 10000000000
-    }
-  },
-  "risk_management": {
-    "stop_loss": {
-      "type": "trailing",
-      "initial_stop_pct": 0.13,
-      "trailing_stop_pct": 0.08,
-      "activation_gain_pct": 0.05,
-      "grace_period_days": 1
+  "stocks": {
+    "CLS": {
+      "name": "Celestica Inc.",
+      "allocation": 25000.0,
+      "entry_target": 64.0,
+      "stop_loss": 60.0,
+      "target_1": 75.0,
+      "target_2": 82.0,
+      "sector": "Industrial Technology",
+      "catalyst": "Q3 Earnings + Investor Day Oct 28",
+      "risk_level": "Conservative-Moderate",
+      "shares": 390.625
     },
-    "position_limits": {
-      "max_single_position": 0.30,
-      "max_sector_exposure": 0.50
+    "CYBR": {
+      "name": "CyberArk Software Ltd.",
+      "allocation": 22500.0,
+      "entry_target": 230.0,
+      "stop_loss": 210.0,
+      "target_1": 275.0,
+      "target_2": 299.0,
+      "sector": "Technology",
+      "catalyst": "AI Security Integration + Q3 Momentum",
+      "risk_level": "Moderate",
+      "shares": 97.826
+    },
+    "CRSP": {
+      "name": "CRISPR Therapeutics AG",
+      "allocation": 25000.0,
+      "entry_target": 47.5,
+      "stop_loss": 43.5,
+      "target_1": 56.0,
+      "target_2": 62.0,
+      "sector": "Healthcare/Biotech",
+      "catalyst": "Q4 Pipeline Readouts + Casgevy Expansion",
+      "risk_level": "Aggressive",
+      "shares": 526.316
+    },
+    "CHDN": {
+      "name": "Churchill Downs Inc.",
+      "allocation": 27500.0,
+      "entry_target": 132.5,
+      "stop_loss": 125.0,
+      "target_1": 145.0,
+      "target_2": 150.0,
+      "sector": "Consumer Discretionary",
+      "catalyst": "Q3 Earnings + Sports Betting Expansion",
+      "risk_level": "Conservative",
+      "shares": 207.547
     }
   },
-  "symbols": ["CRNX", "STRL", "OTEX", "ZION"],
   "api": {
-    "alphavantage_key": "ALPHAVANTAGE_API_KEY",
-    "update_schedule": "20:20",
-    "market_hours": {
-      "open": "09:30",
-      "close": "16:00",
-      "timezone": "US/Eastern"
-    }
+    "alpaca_base_url": "https://paper-api.alpaca.markets",
+    "alpha_vantage_base_url": "https://www.alphavantage.co/query"
   },
-  "benchmarks": {
-    "primary": "MDY",
-    "secondary": ["SPY", "IWM", "QQQ"],
-    "sector_etfs": ["XLF", "XLK", "XLV", "XLI"]
+  "files": {
+    "portfolio_history": "data/portfolio_history.csv",
+    "latest_json": "docs/latest.json",
+    "trading_decisions": "data/trading_decisions.json"
   },
-  "reporting": {
-    "daily_reports": true,
-    "excel_exports": true,
-    "dashboard_update": true,
-    "alerts": {
-      "stop_loss_triggered": true,
-      "significant_moves": 0.05
-    }
-  }
+  "benchmarks": ["SPY", "MDY", "IWM", "QQQ"]
 }

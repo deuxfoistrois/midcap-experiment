@@ -179,46 +179,46 @@ jobs:
         with open('docs/latest.json', 'w') as f:
             json.dump(portfolio_data, f, indent=2)
         
-        # Update CSV
-        csv_data = {
-            'date': datetime.now().strftime('%Y-%m-%d'),
-            'portfolio_value': total_experiment_value,
-            'cash': experiment_cash,
-            'positions_value': positions_value,
-            'total_invested': baseline_investment,
-            'total_return': total_return,
-            'total_return_pct': total_return_pct,
-            'positions_count': len(experiment_positions)
-        }
-        
-        # Add individual position data
-        for symbol in ['CRNX', 'STRL', 'OTEX', 'ZION']:
-            if symbol in experiment_positions:
-                pos = experiment_positions[symbol]
-                csv_data[f'{symbol}_price'] = pos['current_price']
-                csv_data[f'{symbol}_pnl'] = pos['unrealized_pnl']
-                csv_data[f'{symbol}_pnl_pct'] = pos['unrealized_pnl_pct']
-            else:
-                csv_data[f'{symbol}_price'] = None
-                csv_data[f'{symbol}_pnl'] = None
-                csv_data[f'{symbol}_pnl_pct'] = None
-        
-        # Update CSV file
-        os.makedirs('data', exist_ok=True)
-        df_new = pd.DataFrame([csv_data])
-        csv_file = 'data/portfolio_history.csv'
-        
-        if os.path.exists(csv_file):
-            df_existing = pd.read_csv(csv_file)
-            today = datetime.now().strftime('%Y-%m-%d')
-            df_existing = df_existing[df_existing['date'] != today]
-            df_combined = pd.concat([df_existing, df_new], ignore_index=True)
+        # Only update CSV if CRNX stop loss correction is needed, not for regular weekend runs
+        if 'CRNX' not in current_symbols_set and experiment_cash > existing_cash:
+            # Update CSV with corrected September 19th data (one-time correction)
+            csv_data = {
+                'date': '2025-09-19',  # Use Sep 19 date when stop loss actually occurred
+                'portfolio_value': total_experiment_value,
+                'cash': experiment_cash,
+                'positions_value': positions_value,
+                'total_invested': baseline_investment,
+                'total_return': total_return,
+                'total_return_pct': total_return_pct,
+                'positions_count': len(experiment_positions)
+            }
+            
+            # Add individual position data
+            for symbol in ['CRNX', 'STRL', 'OTEX', 'ZION']:
+                if symbol in experiment_positions:
+                    pos = experiment_positions[symbol]
+                    csv_data[f'{symbol}_price'] = pos['current_price']
+                    csv_data[f'{symbol}_pnl'] = pos['unrealized_pnl']
+                    csv_data[f'{symbol}_pnl_pct'] = pos['unrealized_pnl_pct']
+                else:
+                    csv_data[f'{symbol}_price'] = None
+                    csv_data[f'{symbol}_pnl'] = None
+                    csv_data[f'{symbol}_pnl_pct'] = None
+            
+            # Update CSV file
+            os.makedirs('data', exist_ok=True)
+            df_new = pd.DataFrame([csv_data])
+            csv_file = 'data/portfolio_history.csv'
+            
+            if os.path.exists(csv_file):
+                df_existing = pd.read_csv(csv_file)
+                # Update Sep 19 entry specifically
+                df_existing.loc[df_existing['date'] == '2025-09-19'] = df_new.iloc[0]
+                df_existing.to_csv(csv_file, index=False)
+            
+            print("Corrected September 19th CSV data for CRNX stop loss")
         else:
-            df_combined = df_new
-        
-        df_combined.to_csv(csv_file, index=False)
-        
-        print("Portfolio sync completed successfully")
+            print("No CSV update needed - markets closed or data already correct")
         EOF
     
     - name: Commit and push changes

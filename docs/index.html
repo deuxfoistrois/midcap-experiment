@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mid-Cap Portfolio Dashboard</title>
+    <title>Mid-Cap Catalyst Strategy Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
         * {
@@ -45,6 +45,14 @@
         .header p {
             font-size: 1.1rem;
             opacity: 0.9;
+        }
+
+        .strategy-info {
+            background: rgba(255, 255, 255, 0.1);
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.9rem;
         }
 
         .stats-grid {
@@ -89,6 +97,30 @@
 
         .negative {
             color: #ef4444;
+        }
+
+        .neutral {
+            color: #6b7280;
+        }
+
+        .risk-alert {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 30px;
+            display: none;
+        }
+
+        .stop-loss-alert {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            color: #d97706;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 30px;
+            display: none;
         }
 
         .charts-container {
@@ -213,6 +245,30 @@
             font-size: 0.85rem;
             color: #666;
             font-style: italic;
+            max-width: 200px;
+        }
+
+        .risk-level {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .risk-conservative {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .risk-moderate {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .risk-aggressive {
+            background: #fecaca;
+            color: #991b1b;
         }
 
         .footer {
@@ -253,8 +309,19 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Mid-Cap Portfolio Dashboard</h1>
-            <p>Professional Catalyst-Driven Investment Strategy</p>
+            <h1>Mid-Cap Catalyst Strategy Dashboard</h1>
+            <p>Professional 30-Day Trading Experiment</p>
+            <div class="strategy-info">
+                <strong>Strategy:</strong> 4 mid-cap stocks selected for catalyst-driven growth | <strong>Timeline:</strong> 30 days | <strong>Risk Management:</strong> 7.5% max portfolio loss
+            </div>
+        </div>
+
+        <div class="risk-alert" id="riskAlert">
+            <strong>⚠️ Risk Alert:</strong> Portfolio loss exceeds 5%. Review positions and consider risk management actions.
+        </div>
+
+        <div class="stop-loss-alert" id="stopLossAlert">
+            <strong>🚨 Stop Loss Alert:</strong> <span id="stopLossDetails"></span>
         </div>
 
         <div class="stats-grid">
@@ -309,25 +376,27 @@
 
             <div class="positions-table">
                 <div class="table-header">
-                    <h3>Current Positions</h3>
+                    <h3>Current Holdings</h3>
                 </div>
                 <div class="table-content">
                     <table id="positionsTable">
                         <thead>
                             <tr>
                                 <th>Symbol</th>
-                                <th>Shares</th>
+                                <th>Company</th>
+                                <th>Allocation</th>
                                 <th>Entry Price</th>
                                 <th>Current Price</th>
                                 <th>Market Value</th>
                                 <th>P&L</th>
                                 <th>P&L %</th>
                                 <th>Stop Level</th>
+                                <th>Risk Level</th>
                                 <th>Catalyst</th>
                             </tr>
                         </thead>
                         <tbody id="positionsTableBody">
-                            <tr><td colspan="9" style="text-align: center; padding: 40px;">Loading positions...</td></tr>
+                            <tr><td colspan="11" style="text-align: center; padding: 40px;">Loading positions...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -335,7 +404,7 @@
         </div>
 
         <div class="footer">
-            <p>Mid-Cap Catalyst Investment Experiment | Trailing Stop-Loss Risk Management</p>
+            <p>Mid-Cap Catalyst Investment Experiment | Advanced Risk Management with Trailing Stops</p>
             <div class="last-update" id="lastUpdate">Last updated: Loading...</div>
         </div>
     </div>
@@ -344,6 +413,14 @@
         // Global variables
         let allocationChart, performanceChart, timelineChart;
         let portfolioData = null;
+
+        // Stock configuration
+        const STOCK_CONFIG = {
+            "CLS": { name: "Celestica Inc.", sector: "Industrial Technology" },
+            "CYBR": { name: "CyberArk Software Ltd.", sector: "Technology" },
+            "CRSP": { name: "CRISPR Therapeutics AG", sector: "Healthcare/Biotech" },
+            "CHDN": { name: "Churchill Downs Inc.", sector: "Consumer Discretionary" }
+        };
 
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
@@ -368,6 +445,7 @@
                     console.log('Portfolio data loaded successfully:', data);
                     portfolioData = data;
                     updateStats(data);
+                    updateAlerts(data);
                     updateCharts(data);
                     updatePositionsTable(data);
                     updateLastUpdate(data);
@@ -406,11 +484,40 @@
             const cash = data.cash || 0;
             document.getElementById('cashValue').textContent = `$${cash.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             
-            // Days Active - FIXED
-            const startDate = new Date('2025-09-08');
+            // Days Active
+            const startDate = new Date('2025-09-22');
             const currentDate = new Date();
             const daysActive = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
-            document.getElementById('daysActive').textContent = Math.max(0, daysActive);
+            document.getElementById('daysActive').textContent = Math.max(1, daysActive);
+        }
+
+        // Update risk alerts
+        function updateAlerts(data) {
+            const totalReturnPct = (data.total_return_pct || 0) * 100;
+            
+            // Risk alert for losses > 5%
+            const riskAlert = document.getElementById('riskAlert');
+            if (totalReturnPct < -5) {
+                riskAlert.style.display = 'block';
+            } else {
+                riskAlert.style.display = 'none';
+            }
+            
+            // Stop loss alerts
+            const stopLossAlert = document.getElementById('stopLossAlert');
+            const stopLossDetails = document.getElementById('stopLossDetails');
+            
+            if (data.stop_losses_triggered && data.stop_losses_triggered.length > 0) {
+                const stopLosses = data.stop_losses_triggered;
+                const details = stopLosses.map(sl => 
+                    `${sl.symbol}: ${sl.shares.toFixed(3)} shares at $${sl.trigger_price.toFixed(2)}`
+                ).join(', ');
+                
+                stopLossDetails.textContent = details;
+                stopLossAlert.style.display = 'block';
+            } else {
+                stopLossAlert.style.display = 'none';
+            }
         }
 
         // Update charts
@@ -420,7 +527,7 @@
             updatePerformanceChart(data);
         }
 
-        // Update timeline chart - FIXED September 20 drop
+        // Update timeline chart
         function updateTimelineChart(data) {
             const ctx = document.getElementById('timelineChart').getContext('2d');
             
@@ -445,14 +552,8 @@
                             const dateStr = values[0].trim();
                             const returnPct = parseFloat(values[6]) * 100;
                             
-                            // FIXED: Skip September 20 if it shows artificial drop
-                            if (dateStr === '2025-09-20' && returnPct < -10) {
-                                console.log('Skipping Sep 20 artificial drop:', returnPct);
-                                continue;
-                            }
-                            
                             if (!isNaN(returnPct)) {
-                                // Simple, reliable date formatting
+                                // Simple date formatting
                                 const [year, month, day] = dateStr.split('-');
                                 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                                                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -474,7 +575,7 @@
                     if (timelineData.length > 0) {
                         const dates = timelineData.map(d => d.date);
                         const portfolioReturns = timelineData.map(d => d.return);
-                        const benchmarkReturns = dates.map((_, i) => i * 0.15);
+                        const benchmarkReturns = dates.map((_, i) => i * 0.2); // Target benchmark
                         
                         createTimelineChart(ctx, dates, portfolioReturns, benchmarkReturns);
                     } else {
@@ -494,30 +595,30 @@
                 data: {
                     labels: dates,
                     datasets: [{
-                        label: 'Your Portfolio',
+                        label: 'Portfolio Performance',
                         data: portfolioReturns,
                         borderColor: '#667eea',
                         backgroundColor: 'rgba(102, 126, 234, 0.1)',
                         borderWidth: 3,
                         fill: true,
-                        tension: 0,
+                        tension: 0.1,
                         pointBackgroundColor: '#667eea',
                         pointBorderColor: '#ffffff',
                         pointBorderWidth: 2,
-                        pointRadius: 8,
-                        pointHoverRadius: 10
+                        pointRadius: 6,
+                        pointHoverRadius: 8
                     }, {
-                        label: 'Mid-Cap Benchmark',
+                        label: 'Target Performance',
                         data: benchmarkReturns,
-                        borderColor: '#94a3b8',
-                        backgroundColor: 'rgba(148, 163, 184, 0.05)',
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.05)',
                         borderWidth: 2,
                         fill: false,
-                        tension: 0,
-                        pointBackgroundColor: '#94a3b8',
+                        tension: 0.1,
+                        pointBackgroundColor: '#10b981',
                         pointBorderColor: '#ffffff',
                         pointBorderWidth: 1,
-                        pointRadius: 5,
+                        pointRadius: 4,
                         borderDash: [5, 5]
                     }]
                 },
@@ -579,17 +680,15 @@
             const labels = Object.keys(positions);
             const values = labels.map(symbol => positions[symbol].market_value || 0);
             
-            if (data.cash && data.cash > 0) {
+            if (data.cash && data.cash > 1000) { // Only show cash if significant
                 labels.push('Cash');
                 values.push(data.cash);
             }
 
             const colors = [
-                '#667eea', '#764ba2', '#f093fb', '#f5576c',
-                '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'
+                '#667eea', '#10b981', '#f59e0b', '#ef4444',
+                '#8b5cf6', '#06b6d4', '#84cc16', '#f97316'
             ];
-
-            console.log('Allocation chart data:', { labels, values });
 
             allocationChart = new Chart(ctx, {
                 type: 'doughnut',
@@ -610,7 +709,7 @@
                             position: 'bottom',
                             labels: {
                                 padding: 20,
-                                font: { size: 12 }
+                                font: { size: 11 }
                             }
                         }
                     }
@@ -629,8 +728,6 @@
             const positions = data.positions || {};
             const labels = Object.keys(positions);
             const returns = labels.map(symbol => (positions[symbol].unrealized_pnl_pct || 0) * 100);
-
-            console.log('Performance chart data:', { labels, returns });
 
             const colors = returns.map(ret => ret >= 0 ? '#10b981' : '#ef4444');
 
@@ -657,7 +754,7 @@
                             beginAtZero: true,
                             ticks: {
                                 callback: function(value) {
-                                    return value + '%';
+                                    return value.toFixed(1) + '%';
                                 }
                             }
                         }
@@ -682,17 +779,26 @@
                 const pnlPct = (position.unrealized_pnl_pct || 0) * 100;
                 const pnlClass = pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
                 
-                const stopLevel = position.stop_level || 0;
+                const stopLevel = position.stop_loss || 0;
+                const stockConfig = STOCK_CONFIG[symbol] || {};
+                
+                // Risk level styling
+                const riskLevel = position.risk_level || 'Unknown';
+                let riskClass = 'risk-conservative';
+                if (riskLevel.includes('Moderate')) riskClass = 'risk-moderate';
+                if (riskLevel.includes('Aggressive')) riskClass = 'risk-aggressive';
 
                 row.innerHTML = `
                     <td><span class="symbol">${symbol}</span></td>
-                    <td>${(position.shares || 0).toFixed(3)}</td>
-                    <td class="price">$${(position.entry_price || 0).toFixed(2)}</td>
-                    <td class="price">$${(position.current_price || 0).toFixed(2)}</td>
-                    <td class="price">$${(position.market_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                    <td class="${pnlClass}">$${pnl.toFixed(2)}</td>
+                    <td>${stockConfig.name || 'Unknown'}</td>
+                    <td>${(position.market_value || 0).toLocaleString('en-US', {minimumFractionDigits: 0})}</td>
+                    <td class="price">${(position.entry_price || 0).toFixed(2)}</td>
+                    <td class="price">${(position.current_price || 0).toFixed(2)}</td>
+                    <td class="price">${(position.market_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    <td class="${pnlClass}">${pnl.toFixed(2)}</td>
                     <td class="${pnlClass}">${pnlPct.toFixed(2)}%</td>
-                    <td class="stop-level">$${stopLevel.toFixed(2)}</td>
+                    <td class="stop-level">${stopLevel.toFixed(2)}</td>
+                    <td><span class="risk-level ${riskClass}">${riskLevel}</span></td>
                     <td class="catalyst">${position.catalyst || 'N/A'}</td>
                 `;
                 
@@ -701,7 +807,7 @@
 
             if (Object.keys(positions).length === 0) {
                 const row = document.createElement('tr');
-                row.innerHTML = `<td colspan="9" style="text-align: center; color: #999; font-style: italic; padding: 40px;">No positions found</td>`;
+                row.innerHTML = `<td colspan="11" style="text-align: center; color: #999; font-style: italic; padding: 40px;">No positions found</td>`;
                 tbody.appendChild(row);
             }
         }

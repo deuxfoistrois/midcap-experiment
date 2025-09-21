@@ -52,64 +52,70 @@ jobs:
         current_symbols = [pos.symbol for pos in positions if pos.symbol in ['CRNX', 'STRL', 'OTEX', 'ZION']]
         print(f"Current positions: {current_symbols}")
 
-        # Load existing portfolio data
+        # Load existing portfolio data (preserve original tracking)
         with open('docs/latest.json', 'r') as f:
             existing_portfolio = json.load(f)
 
-        # Calculate positions value
-        positions_value = 0.0
-        for pos in positions:
-            if pos.symbol in ['CRNX', 'STRL', 'OTEX', 'ZION']:
-                positions_value += float(pos.market_value)
-        
-        print(f"Positions Value: ${positions_value:.2f}")
+        print("Existing portfolio data loaded")
 
-        # Handle CRNX stop loss
+        # Check for stop losses - only handle missing positions
+        expected_symbols = set(['CRNX', 'STRL', 'OTEX', 'ZION'])
+        current_symbols_set = set(current_symbols)
+        sold_positions = expected_symbols - current_symbols_set
+
+        # Calculate experiment cash
         experiment_cash = 24.52
-        if 'CRNX' not in current_symbols:
-            print("CRNX not in current positions - stop loss already executed")
-            print("Adding CRNX sale proceeds: $268.64")
+        if 'CRNX' in sold_positions:
+            print("CRNX stop loss detected - adding sale proceeds")
             experiment_cash += 268.64
+            print(f"Added CRNX sale proceeds: $268.64")
 
         print(f"Experiment Cash: ${experiment_cash:.2f}")
 
+        # Preserve existing position data, only update current prices for active positions
+        updated_positions = {}
+        
+        # Keep all existing position data structure
+        for symbol, existing_pos in existing_portfolio.get('positions', {}).items():
+            if symbol in current_symbols:
+                # Position still active - update only current price from Alpaca
+                alpaca_pos = next((pos for pos in positions if pos.symbol == symbol), None)
+                if alpaca_pos:
+                    # Preserve all original tracking data, only update current price
+                    current_price = float(alpaca_pos.market_value) / float(alpaca_pos.qty)
+                    market_value = float(existing_pos.get('shares', 0)) * current_price
+                    cost_basis = float(existing_pos.get('shares', 0)) * float(existing_pos.get('entry_price', 0))
+                    unrealized_pnl = market_value - cost_basis
+                    unrealized_pnl_pct = unrealized_pnl / cost_basis if cost_basis > 0 else 0
+                    
+                    updated_positions[symbol] = {
+                        "symbol": symbol,
+                        "shares": existing_pos.get('shares'),
+                        "entry_price": existing_pos.get('entry_price'),  # PRESERVE original entry price
+                        "current_price": current_price,
+                        "market_value": market_value,
+                        "cost_basis": cost_basis,
+                        "unrealized_pnl": unrealized_pnl,
+                        "unrealized_pnl_pct": unrealized_pnl_pct,
+                        "catalyst": existing_pos.get('catalyst', 'No catalyst'),
+                        "last_update": datetime.now().isoformat()
+                    }
+                    print(f"Updated {symbol}: ${current_price:.2f} (preserving original entry data)")
+                else:
+                    # Keep existing data if no Alpaca position found
+                    updated_positions[symbol] = existing_pos
+            # Skip positions that were sold (like CRNX)
+
         # Calculate totals
+        positions_value = sum([pos['market_value'] for pos in updated_positions.values()])
         total_experiment_value = positions_value + experiment_cash
         baseline_investment = 1000.0
         total_return = total_experiment_value - baseline_investment
         total_return_pct = total_return / baseline_investment
 
+        print(f"Positions Value: ${positions_value:.2f}")
         print(f"Total Value: ${total_experiment_value:.2f}")
         print(f"Total Return: ${total_return:.2f} ({total_return_pct:.2%})")
-
-        # Update positions in portfolio data
-        updated_positions = {}
-        for pos in positions:
-            if pos.symbol in ['CRNX', 'STRL', 'OTEX', 'ZION']:
-                # Get existing position data for catalyst info
-                existing_pos = existing_portfolio.get('positions', {}).get(pos.symbol, {})
-                
-                qty = float(pos.qty)
-                market_value = float(pos.market_value)
-                cost_basis = float(pos.cost_basis)
-                
-                # Handle potential None values and use correct attribute names
-                avg_entry_price = float(pos.avg_entry_price) if pos.avg_entry_price else cost_basis / qty
-                unrealized_pl = float(pos.unrealized_pl) if hasattr(pos, 'unrealized_pl') else market_value - cost_basis
-                unrealized_plpc = float(pos.unrealized_plpc) if hasattr(pos, 'unrealized_plpc') else (unrealized_pl / cost_basis) if cost_basis > 0 else 0
-                
-                updated_positions[pos.symbol] = {
-                    "symbol": pos.symbol,
-                    "shares": qty,
-                    "entry_price": avg_entry_price,
-                    "current_price": market_value / qty,
-                    "market_value": market_value,
-                    "cost_basis": cost_basis,
-                    "unrealized_pnl": unrealized_pl,
-                    "unrealized_pnl_pct": unrealized_plpc,
-                    "catalyst": existing_pos.get('catalyst', 'No catalyst'),
-                    "last_update": datetime.now().isoformat()
-                }
 
         # Update JSON file
         portfolio_data = {
@@ -127,28 +133,28 @@ jobs:
         with open('docs/latest.json', 'w') as f:
             json.dump(portfolio_data, f, indent=2)
 
-        # Update CSV file
-        try:
-            df = pd.read_csv('data/portfolio_history.csv')
-            
-            target_date = '2025-09-19'
-            if target_date in df['date'].values:
-                print(f"Updating existing entry for {target_date}")
-                mask = df['date'] == target_date
-                df.loc[mask, 'cash'] = experiment_cash
-                df.loc[mask, 'portfolio_value'] = total_experiment_value
-                df.loc[mask, 'total_return'] = total_return
-                df.loc[mask, 'total_return_pct'] = total_return_pct
-                df.loc[mask, 'positions_count'] = len(updated_positions)
-            else:
-                print(f"Date {target_date} not found in CSV, skipping update")
+        # Update CSV file only if there was a stop loss
+        if sold_positions:
+            try:
+                df = pd.read_csv('data/portfolio_history.csv')
                 
-            df.to_csv('data/portfolio_history.csv', index=False)
-            print("CSV updated successfully")
-            
-        except Exception as e:
-            print(f"CSV update failed: {e}")
-            print("Continuing without CSV update")
+                target_date = '2025-09-19'
+                if target_date in df['date'].values:
+                    print(f"Updating CSV entry for {target_date}")
+                    mask = df['date'] == target_date
+                    df.loc[mask, 'cash'] = experiment_cash
+                    df.loc[mask, 'portfolio_value'] = total_experiment_value
+                    df.loc[mask, 'total_return'] = total_return
+                    df.loc[mask, 'total_return_pct'] = total_return_pct
+                    df.loc[mask, 'positions_count'] = len(updated_positions)
+                    
+                    df.to_csv('data/portfolio_history.csv', index=False)
+                    print("CSV updated successfully")
+                else:
+                    print(f"Date {target_date} not found in CSV")
+                    
+            except Exception as e:
+                print(f"CSV update failed: {e}")
 
         print("Portfolio sync completed successfully")
         EOF

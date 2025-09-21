@@ -56,8 +56,12 @@ jobs:
         with open('docs/latest.json', 'r') as f:
             existing_portfolio = json.load(f)
 
-        # Calculate positions value
-        positions_value = sum([float(pos.market_value) for pos in positions if pos.symbol in ['CRNX', 'STRL', 'OTEX', 'ZION']])
+        # Calculate positions value - FIXED: Convert all string values to float
+        positions_value = 0.0
+        for pos in positions:
+            if pos.symbol in ['CRNX', 'STRL', 'OTEX', 'ZION']:
+                positions_value += float(pos.market_value)
+        
         print(f"Positions Value: ${positions_value:.2f}")
 
         # Handle CRNX stop loss
@@ -78,19 +82,22 @@ jobs:
         print(f"Total Value: ${total_experiment_value:.2f}")
         print(f"Total Return: ${total_return:.2f} ({total_return_pct:.2%})")
 
-        # Update positions in portfolio data
+        # Update positions in portfolio data - FIXED: Convert all values to float
         updated_positions = {}
         for pos in positions:
             if pos.symbol in ['CRNX', 'STRL', 'OTEX', 'ZION']:
                 # Get existing position data for catalyst info
                 existing_pos = existing_portfolio.get('positions', {}).get(pos.symbol, {})
                 
+                qty = float(pos.qty)
+                market_value = float(pos.market_value)
+                
                 updated_positions[pos.symbol] = {
                     "symbol": pos.symbol,
-                    "shares": float(pos.qty),
+                    "shares": qty,
                     "entry_price": float(pos.avg_entry_price) if pos.avg_entry_price else float(existing_pos.get('entry_price', 0)),
-                    "current_price": float(pos.market_value) / float(pos.qty),
-                    "market_value": float(pos.market_value),
+                    "current_price": market_value / qty,
+                    "market_value": market_value,
                     "cost_basis": float(pos.cost_basis),
                     "unrealized_pnl": float(pos.unrealized_pnl),
                     "unrealized_pnl_pct": float(pos.unrealized_plpc),

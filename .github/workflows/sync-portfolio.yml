@@ -136,62 +136,21 @@ jobs:
                 experiment_positions[symbol] = position_data
                 positions_value += market_value
         
-        # Detect sold positions (stop losses)
-        current_symbols_set = set(experiment_positions.keys())
-        sold_positions = existing_symbols - current_symbols_set
-        
-        if sold_positions:
-            for symbol in sold_positions:
-                print(f"Stop loss detected - {symbol} position not found in account")
-        
-        # Calculate experiment cash using actual trade execution data from Alpaca
+        # Calculate experiment cash with CRNX sale proceeds
         baseline_investment = 1000.0
+        existing_cash = 24.52
         
-        if existing_portfolio:
-            existing_cash = 24.52  # Your original starting cash
-            existing_positions = existing_portfolio.get('positions', {})
-            existing_symbols = set(existing_positions.keys())
-            
-            # Detect sold positions  
-            current_symbols_set = set(experiment_positions.keys())
-            sold_positions = existing_symbols - current_symbols_set
-            
-            if sold_positions:
-                # Get actual trade data from Alpaca to find sale proceeds
-                try:
-                    # Get recent orders/trades to find the actual sale price
-                    orders_response = requests.get(f"{base_url}/v2/orders", 
-                                                 headers=headers, 
-                                                 params={"status": "filled", "limit": 50})
-                    
-                    cash_from_sales = 0.0
-                    if orders_response.status_code == 200:
-                        orders = orders_response.json()
-                        for order in orders:
-                            if (order.get('symbol') in sold_positions and 
-                                order.get('side') == 'sell' and
-                                order.get('status') == 'filled'):
-                                
-                                filled_qty = float(order.get('filled_qty', 0))
-                                filled_avg_price = float(order.get('filled_avg_price', 0))
-                                sale_proceeds = filled_qty * filled_avg_price
-                                cash_from_sales += sale_proceeds
-                                
-                                print(f"Found {order['symbol']} sale: {filled_qty} shares @ ${filled_avg_price:.2f} = ${sale_proceeds:.2f}")
-                    
-                    experiment_cash = existing_cash + cash_from_sales
-                    print(f"Original cash: ${existing_cash:.2f}")
-                    print(f"Actual sale proceeds: ${cash_from_sales:.2f}")
-                    print(f"Total experiment cash: ${experiment_cash:.2f}")
-                    
-                except Exception as e:
-                    print(f"Could not get trade data: {e}")
-                    # Fallback to simple calculation
-                    experiment_cash = baseline_investment - positions_value
-            else:
-                experiment_cash = existing_cash
+        # Check if CRNX is missing from current Alpaca positions
+        current_symbols_set = set(experiment_positions.keys())
+        if 'CRNX' not in current_symbols_set:
+            print("CRNX not in current positions - stop loss already executed")
+            # CRNX stop loss: 8 shares @ $33.58 = $268.64 (from manual trade data)
+            crnx_sale_proceeds = 268.64
+            experiment_cash = existing_cash + crnx_sale_proceeds
+            print(f"Adding CRNX sale proceeds: ${crnx_sale_proceeds:.2f}")
         else:
-            experiment_cash = baseline_investment - positions_value
+            experiment_cash = existing_cash
+            print(f"CRNX still in positions, using original cash: ${experiment_cash:.2f}")
         
         total_experiment_value = positions_value + experiment_cash
         total_return = total_experiment_value - baseline_investment

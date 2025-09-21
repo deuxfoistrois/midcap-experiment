@@ -48,7 +48,7 @@ def calculate_dynamic_stop_loss(symbol, current_price, config):
     # Calculate gain percentage
     gain_pct = (current_price - entry_price) / entry_price
     
-    # If gain exceeds trigger threshold, activate trailing stop
+    # If gain exceeds 5% trigger threshold, activate trailing stop
     if gain_pct > portfolio_config["trailing_stop_trigger"]:
         # 8% trailing stop
         trailing_stop = current_price * 0.92
